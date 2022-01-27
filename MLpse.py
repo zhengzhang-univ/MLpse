@@ -209,6 +209,7 @@ class Likelihood:
         self.pvec = None
         self.threshold = Covariance_class_obj.kltrans.threshold
         self.parameter_firstguess_list = Covariance_class_obj.make_binning_power()
+        self.dim = Covariance_class_obj.alpha_dim
         self.CV = Covariance_class_obj
         
 
@@ -218,7 +219,7 @@ class Likelihood:
         else:
             self.pvec = pvec
             Result = mpiutil.parallel_map(
-                self.make_funs_mi, list(range(self.telescope.mmax + 1))
+                self.make_funs_mi, list(range(self.CV.telescope.mmax + 1))
             )
             # Unpack into separate lists of the log-likelihood function, jacobian, and hessian
             fun, jac, hess = list(zip(*Result))
@@ -240,17 +241,17 @@ class Likelihood:
         # compute m-mode Jacobian
         aux = (1. - C_inv_D) @ C_inv
         pd = []
-        for i in range(self.alpha_dim):
+        for i in range(self.dim):
             # pd.append(N.trace(C_inv @ Q_alpha[i] @ (1. - C_inv @ self.Dmat))) 
             # To save computing source, it can be simplified as
             pd.append(N.trace(Q_alpha[i] @ aux)) 
-        jac_mi = pd.reshape((self.alpha_dim,))
+        jac_mi = pd.reshape((self.dim,))
             
         # compute m-mode Hessian
-        hess_mi = N.empty((self.alpha_dim,self.alpha_dim), Q_alpha.dtype)
+        hess_mi = N.empty((self.dim,self.dim), Q_alpha.dtype)
         aux = (C_inv_D - 0.5) @ C_inv
-        for i in range(self.alpha_dim):
-            for j in range(i, self.alpha_dim):
+        for i in range(self.dim):
+            for j in range(i, self.dim):
                     #aux[i,j] = N.trace(C_inv @ Q_alpha[i] @ C_inv @ Q_alpha[j] @ (C_inv @ self.D - 0.5))
                 hess_mi[i,j] = hess_mi[j,i] = N.trace(Q_alpha[i] @ C_inv @ Q_alpha[j] @ aux)
                 
