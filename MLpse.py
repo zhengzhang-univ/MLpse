@@ -93,7 +93,9 @@ class Covariances(kspace_cartesian):
     
         return mpiutil.parallel_map(fun, list(range(self.alpha_dim)))
     
-    def make_response_matrix_kl_m(self, mi, response_matrix_list_sky, threshold = self.kltrans.threshold):
+    def make_response_matrix_kl_m(self, mi, response_matrix_list_sky, threshold = None):
+        if threshold is None:
+            threshold = self.kltrans.threshold
         def fun(mat):
             return self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
         
@@ -113,6 +115,8 @@ class Covariances(kspace_cartesian):
    
         
     def make_covariance_kl_m(self, pvec, mi, response_mat_list_kl, threshold = None):
+        if threshold is None:
+            threshold = self.kltrans.threshold
         #response_mat_list = self.make_response_matrix_kl_m(mi, threshold)
         CV = self.make_noise_covariance_KL_m(mi, threshold)
         #Q_alpha_list = self.make_response_matrix_kl_m(mi, threshold, mat_list)
