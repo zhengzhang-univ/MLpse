@@ -94,8 +94,7 @@ class Covariances(kspace_cartesian):
         return mpiutil.parallel_map(fun, list(range(self.alpha_dim)))
     
     def make_response_matrix_kl_m(self, mi, response_matrix_list_sky, threshold = None):
-        if threshold is None:
-            threshold = self.kltrans.threshold
+        
         def fun(mat):
             return self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
         
@@ -115,11 +114,8 @@ class Covariances(kspace_cartesian):
    
         
     def make_covariance_kl_m(self, pvec, mi, response_mat_list_kl, threshold = None):
-        if threshold is None:
-            threshold = self.kltrans.threshold
-        #response_mat_list = self.make_response_matrix_kl_m(mi, threshold)
+        
         CV = self.make_noise_covariance_KL_m(mi, threshold)
-        #Q_alpha_list = self.make_response_matrix_kl_m(mi, threshold, mat_list)
         for i in range(self.alpha_dim):
             CV += pvec[i]*response_mat_list_kl[i]
         return CV
@@ -208,7 +204,8 @@ class Likelihood:
         self.Dmat = v_column @ v_column.H
         self.mat_list = Covariance_class_obj.fetch_response_matrix_list_sky()
         self.pvec = None
-        self.threshold = Covariance_class_obj.kltrans.threshold
+        self.threshold = None
+        #self.threshold = Covariance_class_obj.kltrans.threshold
         self.parameter_firstguess_list = Covariance_class_obj.make_binning_power()
         self.dim = Covariance_class_obj.alpha_dim
         self.CV = Covariance_class_obj
