@@ -3,7 +3,7 @@ from MLpse import *
 from scipy.optimize import minimize
 
 
-configfile = "/data/zzhang/mpi_test/config.yaml"
+configfile = "/data/zzhang/sim1/bt_matrices/config.yaml"
 
 pipeline_info = Parameters_collection.from_config(configfile) # Fetch info about the telescope and former steps
 
@@ -11,7 +11,7 @@ pipeline_info = Parameters_collection.from_config(configfile) # Fetch info about
 CV = Covariances(0,0.3,2,0,0.15,2,pipeline_info['dk_0thresh_fg_3thresh'])
 
 
-test = Likelihood(data, threshold, CV)
+test = Likelihood(data, CV)
 p0 = test.parameter_firstguess_list
     
 def log_likelihood(pvec):
@@ -28,4 +28,8 @@ def Hessian(pvec):
     
 res = minimize(log_likelihood, p0, jac= Jacobian, hess=Hessian)
 
+textfile = open("mlpse.txt", "w")
+for element in list(res.x):
+    textfile.write(element + "\n")
+textfile.close()
 # rex.x is the result.
