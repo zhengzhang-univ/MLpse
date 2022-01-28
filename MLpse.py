@@ -95,7 +95,7 @@ class Covariances(kspace_cartesian):
     # mat_list = self.fetch_response_matrix_list_sky()
     # kl_list = self.make_response_matrix_kl_m(mi, threshold, mat_list)
     
-    def make_response_matrix_kl_m(self, mi, threshold = self.kltrans.threshold, response_matrix_list_sky)
+    def make_response_matrix_kl_m(self, mi, threshold = self.kltrans.threshold, response_matrix_list_sky):
 
         def fun(mat):
             return self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
