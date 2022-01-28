@@ -245,7 +245,7 @@ class Likelihood:
             # pd.append(N.trace(C_inv @ Q_alpha[i] @ (1. - C_inv @ self.Dmat))) 
             # To save computing source, it can be simplified as
             pd.append(N.trace(Q_alpha_list[i] @ aux)) 
-        jac_mi = pd.reshape((self.dim,))
+        jac_mi = N.array(pd).reshape((self.dim,))
             
         # compute m-mode Hessian
         hess_mi = N.empty((self.dim,self.dim))
