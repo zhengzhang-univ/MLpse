@@ -115,10 +115,10 @@ class Covariances(kspace_cartesian):
         
     def make_covariance_kl_m(self, pvec, mi, response_mat_list_kl, threshold = None):
         
-        CV = self.make_noise_covariance_KL_m(mi, threshold)
+        cv_mat = self.make_noise_covariance_kl_m(mi, threshold)
         for i in range(self.alpha_dim):
-            CV += pvec[i]*response_mat_list_kl[i]
-        return CV
+            cv_mat += pvec[i]*response_mat_list_kl[i]
+        return cv_mat
     
     
     def make_foregrounds_covariance_sky(self):
@@ -156,7 +156,7 @@ class Covariances(kspace_cartesian):
 
 
 
-    def make_noise_covariance_KL_m(self,mi,threshold=None):
+    def make_noise_covariance_kl_m(self,mi,threshold=None):
         """ Compute the noise covariances in the KL basis. The noise includes 
         both foregrounds and instrumental noise. This is for a single m-mode.
         Parameters
@@ -180,8 +180,7 @@ class Covariances(kspace_cartesian):
         # To regularise the noise matrix??
 
         # Project into SVD basis and add into noise matrix
-        #aux = self.beamtransfer.project_matrix_diagonal_telescope_to_svd(mi, npower)
-        aux=0.
+        aux = self.beamtransfer.project_matrix_diagonal_telescope_to_svd(mi, npower)
     
         cvb_totaln = cvb_n + aux
 
@@ -202,9 +201,8 @@ class Covariances(kspace_cartesian):
 
     
 class Likelihood:
-    def __init__(self, data, Covariance_class_obj):
-        v_column = N.matrix(data.reshape((-1,1)))
-        self.Dmat = v_column @ v_column.H
+    def __init__(self, data_sky, Covariance_class_obj):
+        self.data_sky=data_sky
         self.mat_list = Covariance_class_obj.fetch_response_matrix_list_sky()
         self.pvec = None
         self.threshold = None
@@ -229,12 +227,14 @@ class Likelihood:
             self.hess = sum(list(hess))
         
     def make_funs_mi(self, mi):
-        
+        data_kl = self.kltrans.project_data_sky_to_kl(mi, self.data_sky, self.threshold)
+        v_column = N.matrix(data_kl.reshape((-1,1)))
+        Dmat = v_column @ v_column.H
         
         Q_alpha_list = self.CV.make_response_matrix_kl_m(mi, self.mat_list, self.threshold)
         C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
         C_inv = N.linalg.inv(C)
-        C_inv_D = C_inv @ self.Dmat
+        C_inv_D = C_inv @ Dmat
         
         # compute m-mode log-likelihood
         fun_mi = N.trace(N.log(C) + C_inv_D)
@@ -258,10 +258,9 @@ class Likelihood:
                 
         return fun_mi, jac_mi, hess_mi
     
-#    
-
-    
-    
+    #def project_data_tele_to_kl(self, mi, data_tele):
+        #aux = CV.beamtransfer.project_vector_telescope_to_svd(mi,data_tele)
+        #return CV.kltrans.project_vector_svd_to_kl(mi, aux, self.threshold):
 
         
         
