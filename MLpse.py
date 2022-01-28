@@ -232,7 +232,7 @@ class Likelihood:
         
         
         Q_alpha_list = self.CV.make_response_matrix_kl_m(mi, self.mat_list, self.threshold)
-        C = self.CV.make_covariance_kl_m(pvec, mi, Q_alpha_list, self.threshold)
+        C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
         C_inv = N.linalg.inv(C)
         C_inv_D = C_inv @ self.Dmat
         
