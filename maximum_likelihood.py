@@ -10,7 +10,7 @@ pipeline_info = Parameters_collection.from_config(configfile) # Fetch info about
 
 CV = Covariances(0,0.3,2,0,0.15,2,pipeline_info['dk_1thresh_fg_3thresh'])
 
-fakedata_sky = N.ones(shape=(16,4,201)) # shape: (frequency, polarisation, lmax+1)
+fakedata_sky = 100.* N.ones(shape=(16,4,201)) # shape: (frequency, polarisation, lmax+1)
 
 test = Likelihood(fakedata_sky, CV)
 

@@ -93,29 +93,28 @@ class Covariances(kspace_cartesian):
     
         return mpiutil.parallel_map(fun, list(range(self.alpha_dim)))
     
-    def make_response_matrix_kl_m(self, mi, response_matrix_list_sky, threshold = None):
-        
-        def fun(mat):
-            return self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
-        
-        return mpiutil.parallel_map(fun, response_matrix_list_sky)
+    #def make_response_matrix_kl_m(self, mi, response_matrix_list_sky, threshold = None):
+    #    
+    #    def fun(mat):
+    #        return self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
+    #    
+    #    return mpiutil.parallel_map(fun, response_matrix_list_sky)
     
         
-#    def make_response_matrix_kl_m(self, mi, threshold = None)
-#        response_matrix_list_kl = []
-#        response_matrix_list_sky = self.make_response_matrix_sky()
-#        def fun
-#        for i in range(self.alpha_dim):
-#            mat = response_matrix_list_sky[i]
-#            response_matrix_list_kl.append(self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
-#                                          )
-#        return response_matrix_list_kl
+    def make_response_matrix_kl_m(self, mi, response_matrix_list_sky, threshold = None)
+        response_matrix_list_kl = []
+        for i in range(self.alpha_dim):
+            mat = response_matrix_list_sky[i]
+            response_matrix_list_kl.append(self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
+                                          )
+        return response_matrix_list_kl
     
-   
+   #make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
         
     def make_covariance_kl_m(self, pvec, mi, response_mat_list_kl, threshold = None):
         
         cv_mat = self.make_noise_covariance_kl_m(mi, threshold)
+        assert len(pvec)==self.alpha_dim
         for i in range(self.alpha_dim):
             cv_mat += pvec[i]*response_mat_list_kl[i]
         return cv_mat
