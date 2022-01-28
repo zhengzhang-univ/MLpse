@@ -101,7 +101,7 @@ class Covariances(kspace_cartesian):
     #    return mpiutil.parallel_map(fun, response_matrix_list_sky)
     
         
-    def make_response_matrix_kl_m(self, mi, response_matrix_list_sky, threshold = None)
+    def make_response_matrix_kl_m(self, mi, response_matrix_list_sky, threshold = None):
         response_matrix_list_kl = []
         for i in range(self.alpha_dim):
             mat = response_matrix_list_sky[i]
