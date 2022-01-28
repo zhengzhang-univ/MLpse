@@ -209,6 +209,7 @@ class Likelihood:
         self.parameter_firstguess_list = Covariance_class_obj.make_binning_power()
         self.dim = Covariance_class_obj.alpha_dim
         self.CV = Covariance_class_obj
+        self.nontrivial_mmode_list = self.filter_m_modes()
         
 
     def __call__(self, pvec):
@@ -217,14 +218,23 @@ class Likelihood:
         else:
             self.pvec = pvec
             Result = mpiutil.parallel_map(
-                self.make_funs_mi, list(range(self.CV.telescope.mmax + 1))
+                self.make_funs_mi, self.nontrivial_mmode_list
             )
             # Unpack into separate lists of the log-likelihood function, jacobian, and hessian
             fun, jac, hess = list(zip(*Result))
             self.fun = sum(list(fun))
             self.jac = sum(list(jac))
             self.hess = sum(list(hess))
-        
+     
+    def filter_m_modes(self):
+        m_list = []
+        for mi in range(self.CV.telescope.mmax + 1):
+            if self.CV.kltrans.modes_m(mi)[0] is none:
+                print("The m={} mode is null.".format(mi))
+            else:
+                m_list.append(mi)
+        return m_list
+    
     def make_funs_mi(self, mi):
         data_kl = self.CV.kltrans.project_vector_sky_to_kl(mi, self.data_sky, self.threshold)
         v_column = N.matrix(data_kl.reshape((-1,1)))
@@ -248,7 +258,7 @@ class Likelihood:
         jac_mi = N.array(pd).reshape((self.dim,))
             
         # compute m-mode Hessian
-        hess_mi = N.empty((self.dim,self.dim))
+        hess_mi = N.empty((self.dim,self.dim), dtype='complex128')
         aux = (C_inv_D - 0.5) @ C_inv
         for i in range(self.dim):
             for j in range(i, self.dim):
