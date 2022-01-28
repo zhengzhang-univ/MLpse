@@ -244,16 +244,16 @@ class Likelihood:
         for i in range(self.dim):
             # pd.append(N.trace(C_inv @ Q_alpha[i] @ (1. - C_inv @ self.Dmat))) 
             # To save computing source, it can be simplified as
-            pd.append(N.trace(Q_alpha[i] @ aux)) 
+            pd.append(N.trace(Q_alpha_list[i] @ aux)) 
         jac_mi = pd.reshape((self.dim,))
             
         # compute m-mode Hessian
-        hess_mi = N.empty((self.dim,self.dim), Q_alpha.dtype)
+        hess_mi = N.empty((self.dim,self.dim))
         aux = (C_inv_D - 0.5) @ C_inv
         for i in range(self.dim):
             for j in range(i, self.dim):
                     #aux[i,j] = N.trace(C_inv @ Q_alpha[i] @ C_inv @ Q_alpha[j] @ (C_inv @ self.D - 0.5))
-                hess_mi[i,j] = hess_mi[j,i] = N.trace(Q_alpha[i] @ C_inv @ Q_alpha[j] @ aux)
+                hess_mi[i,j] = hess_mi[j,i] = N.trace(Q_alpha_list[i] @ C_inv @ Q_alpha_list[j] @ aux)
                 
         return fun_mi, jac_mi, hess_mi
     
