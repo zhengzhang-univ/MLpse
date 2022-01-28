@@ -1,7 +1,7 @@
 from Fetch_info import Parameters_collection
 from MLpse import *
 from scipy.optimize import minimize
-
+import numpy as N
 
 configfile = "/data/zzhang/sim1/bt_matrices/config.yaml"
 
@@ -10,8 +10,8 @@ pipeline_info = Parameters_collection.from_config(configfile) # Fetch info about
 
 CV = Covariances(0,0.3,2,0,0.15,2,pipeline_info['dk_0thresh_fg_3thresh'])
 
-
-test = Likelihood(data, CV)
+testdata = N.arange(200)
+test = Likelihood(testdata, CV)
 p0 = test.parameter_firstguess_list
     
 def log_likelihood(pvec):
