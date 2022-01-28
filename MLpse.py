@@ -180,7 +180,8 @@ class Covariances(kspace_cartesian):
         # To regularise the noise matrix??
 
         # Project into SVD basis and add into noise matrix
-        aux = self.beamtransfer.project_matrix_diagonal_telescope_to_svd(mi, npower)
+        #aux = self.beamtransfer.project_matrix_diagonal_telescope_to_svd(mi, npower)
+        aux=0.
     
         cvb_totaln = cvb_n + aux
 
