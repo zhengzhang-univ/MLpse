@@ -229,7 +229,7 @@ class Likelihood:
     def filter_m_modes(self):
         m_list = []
         for mi in range(self.CV.telescope.mmax + 1):
-            if self.CV.kltrans.modes_m(mi)[0] is none:
+            if self.CV.kltrans.modes_m(mi)[0] is None:
                 print("The m={} mode is null.".format(mi))
             else:
                 m_list.append(mi)
