@@ -227,7 +227,7 @@ class Likelihood:
             self.hess = sum(list(hess))
         
     def make_funs_mi(self, mi):
-        data_kl = self.CV.kltrans.project_data_sky_to_kl(mi, self.data_sky, self.threshold)
+        data_kl = self.CV.kltrans.project_vector_sky_to_kl(mi, self.data_sky, self.threshold)
         v_column = N.matrix(data_kl.reshape((-1,1)))
         Dmat = v_column @ v_column.H
         
