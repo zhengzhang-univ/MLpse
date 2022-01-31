@@ -2,6 +2,7 @@ from Fetch_info import Parameters_collection
 from MLpse import *
 from scipy.optimize import minimize
 import numpy as N
+from caput import mpiutil
 
 configfile = "/data/zzhang/sim1/bt_matrices/config.yaml"
 
@@ -27,11 +28,16 @@ def Jacobian(pvec):
 def Hessian(pvec):
         test(pvec)
         return test.hess
-    
-res = minimize(log_likelihood, p0, method='Newton-CG', jac= Jacobian, hess=Hessian)
 
-textfile = open("mlpse.txt", "w")
-for element in list(res.x):
-    textfile.write(element + "\n")
-textfile.close()
+st = time.time()
+res = minimize(log_likelihood, p0, method='Newton-CG', jac= Jacobian, hess=Hessian)
 # rex.x is the result.
+et = time.time()
+
+if mpiutil.rank0:
+    print("***** likelihood maximization  time: %f" % (et - st))
+    with h5py.File("MLPSE.hdf5", "w") as f:
+        f.create_dataset("power spectrum", data=res.x)
+        f.create_dataset("k centers", data=CV.k_centers)
+        
+
