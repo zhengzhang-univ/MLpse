@@ -12,7 +12,7 @@ it to m-mode data
 - [caput](https://github.com/hirax-array/caput): provides infrastructure for building these packages, especially MPI utilities.
 
 ## Descriptions of the package:
-MLpse consists of three file:
+MLpse consists of three files:
 1. "maximum_likelihood.py": This is the major script. It calls modules defined in the other two files. Run this to get an ".hdf5" file which records 
 the values of power spectrum parameters and corresponding k bands.
 2. "MLpse.py": core source code with 3 classes:
