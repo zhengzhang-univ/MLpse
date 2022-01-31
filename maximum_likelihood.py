@@ -3,6 +3,7 @@ from MLpse import *
 from scipy.optimize import minimize
 import numpy as N
 from caput import mpiutil
+import time
 
 configfile = "/data/zzhang/sim1/bt_matrices/config.yaml"
 
