@@ -265,7 +265,7 @@ class Likelihood:
                     #aux[i,j] = N.trace(C_inv @ Q_alpha[i] @ C_inv @ Q_alpha[j] @ (C_inv @ self.D - 0.5))
                 hess_mi[i,j] = hess_mi[j,i] = N.trace(Q_alpha_list[i] @ C_inv @ Q_alpha_list[j] @ aux)
                 
-        return fun_mi, jac_mi, hess_mi
+        return fun_mi.real, jac_mi.real, hess_mi.real
     
     #def project_data_tele_to_kl(self, mi, data_tele):
         #aux = CV.beamtransfer.project_vector_telescope_to_svd(mi,data_tele)
