@@ -1,0 +1,39 @@
+pipeline:
+    tasks:
+        -   type:       draco.core.task.SetMPILogging
+
+        -   type:       draco.core.io.LoadProductManager
+            out:        pm
+            params:
+              product_directory:  '/data/zzhang/sim1/bt_matrices/'
+
+        -   type:       draco.core.io.LoadMaps
+            out:        imap
+            params:
+                maps:
+                  - files:
+                    - '/home/zzhang/cora_sim_21cm_nside_128.h5'
+                    - '/home/zzhang/cora_sim_galaxy_nside_128.h5'
+
+        -   type:       draco.synthesis.stream.SimulateSidereal
+            requires:   pm
+            in:         imap
+            out:        sstream
+
+        -   type:       draco.synthesis.noise.GaussianNoise
+            requires:   pm
+            in:         sstream
+            out:        sstream_wnoise
+            params:
+              recv_temp: 50
+              ndays: 733
+              save: Yes
+              output_root: 'draco_ts/sstream_wnoise_'
+
+        # -   type:       draco.core.io.Save
+        #     in:         sstream_wnoise
+        #     params:
+        #       root: 'draco_ts/sstream_wnoise_'
+
+
+        

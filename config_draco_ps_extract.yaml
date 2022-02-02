@@ -1,0 +1,74 @@
+pipeline:
+    tasks:
+        -   type:       draco.core.task.SetMPILogging
+
+        -   type:       draco.core.io.LoadProductManager
+            out:        pm
+            params:
+                product_directory:  '/data/zzhang/sim1/bt_matrices/'
+
+        -   type:       draco.core.io.LoadFilesFromParams
+            out:        sstream
+            params:
+              files:
+                - 'draco_ts/sstream_wnoise_group_0.h5'
+
+        -   type:       draco.analysis.transform.MModeTransform
+            requires:   pm
+            in:         sstream
+            out:        mmodes
+
+        -   type:       draco.core.io.Save
+            in:         mmodes
+            params:
+              root: 'draco_ts/sstream_wnoise_mmodes_'
+
+
+        -   type:       draco.analysis.fgfilter.SVDModeProject
+            requires:   pm
+            in:         mmodes
+            out:        svdmodes
+
+        -   type:       draco.analysis.fgfilter.KLModeProject
+            requires:   pm
+            in:         svdmodes
+            out:        klmodes
+            params:
+                klname:    dk_1thresh_fg_3thresh
+                threshold: 0.0
+
+        -   type:       draco.core.io.Save
+            in:         klmodes
+            params:
+              root: 'draco_ts/sstream_wnoise_klmodes_'
+
+
+        -   type:       draco.analysis.powerspectrum.QuadraticPSEstimation
+            requires:   pm
+            in:         klmodes
+            out:        psmc
+            params:
+                psname: psmc_kl_1thresh_fg_3thresh
+                pstype: unwindowed
+                save:   Yes
+                output_root: 'draco_ts/psmc_unwindowed_wnoise_fgfilter_'
+
+        -   type:       draco.analysis.powerspectrum.QuadraticPSEstimation
+            requires:   pm
+            in:         klmodes
+            out:        psmc
+            params:
+                psname: psmc_kl_1thresh_fg_3thresh
+                pstype: minimum_variance
+                save:   Yes
+                output_root: 'draco_ts/psmc_mv_wnoise_fgfilter_'
+
+        -   type:       draco.analysis.powerspectrum.QuadraticPSEstimation
+            requires:   pm
+            in:         klmodes
+            out:        psmc
+            params:
+                psname: psmc_kl_1thresh_fg_3thresh
+                pstype: uncorrelated
+                save:   Yes
+                output_root: 'draco_ts/psmc_uncorr_wnoise_fgfilter_'
