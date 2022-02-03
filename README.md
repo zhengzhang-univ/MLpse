@@ -175,7 +175,7 @@ An example for the parameter file:
                 output_root: '/data/zzhang/draco_out/klmode_'
 ```
 
-4. Modify "maximum_likelihood.py" to acheive the maximum likelihood power spectrum using simulated data.
+4. Run "maximum_likelihood.py" to acheive the maximum likelihood power spectrum using simulated data.
 ```
 srun --mpi=pmi2 python maximum_likelihood.py
 ```
