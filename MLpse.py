@@ -1,5 +1,5 @@
 import numpy as N  
-import numpy.linalg
+import scipy.linalg
 from cora.signal import corr21cm
 from drift.core import skymodel
 from caput import config, mpiutil
@@ -242,7 +242,7 @@ class Likelihood:
         
         Q_alpha_list = self.CV.make_response_matrix_kl_m(mi, self.mat_list, self.threshold)
         C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
-        C_inv = N.linalg.inv(C)
+        C_inv = scipy.linalg.inv(C)
         C_inv_D = C_inv @ Dmat
         
         # compute m-mode log-likelihood
