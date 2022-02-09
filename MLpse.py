@@ -234,6 +234,7 @@ class Likelihood:
         Q_alpha_list = self.CV.make_response_matrix_kl_m(mi, self.mat_list, self.threshold)
         C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
         len = C.shape[0]
+        Identity = N.identity(len)
         vis_kl = self.data_kl[mi, :len]
         v_column = N.matrix(vis_kl.reshape((-1,1)))
         Dmat = v_column @ v_column.H
@@ -245,7 +246,7 @@ class Likelihood:
         fun_mi = N.trace(N.log(C) + C_inv_D)
         
         # compute m-mode Jacobian
-        aux = (1. - C_inv_D) @ C_inv
+        aux = (Identity - C_inv_D) @ C_inv
         pd = []
         for i in range(self.dim):
             # pd.append(N.trace(C_inv @ Q_alpha[i] @ (1. - C_inv @ self.Dmat))) 
@@ -277,6 +278,7 @@ class Likelihood_with_hess(Likelihood):
         Q_alpha_list = self.CV.make_response_matrix_kl_m(mi, self.mat_list, self.threshold)
         C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
         len = C.shape[0]
+        Identity = N.identity(len)
         vis_kl = self.data_kl[mi, :len]
         v_column = N.matrix(vis_kl.reshape((-1,1)))
         Dmat = v_column @ v_column.H
@@ -288,7 +290,7 @@ class Likelihood_with_hess(Likelihood):
         fun_mi = N.trace(N.log(C) + C_inv_D)
         
         # compute m-mode Jacobian
-        aux = (1. - C_inv_D) @ C_inv
+        aux = (Identity - C_inv_D) @ C_inv
         pd = []
         for i in range(self.dim):
             # pd.append(N.trace(C_inv @ Q_alpha[i] @ (1. - C_inv @ self.Dmat))) 
@@ -298,7 +300,7 @@ class Likelihood_with_hess(Likelihood):
             
         # compute m-mode Hessian
         hess_mi = N.empty((self.dim,self.dim), dtype='complex128')
-        aux = (C_inv_D - 0.5) @ C_inv
+        aux = (C_inv_D - 0.5*Identity) @ C_inv
         for i in range(self.dim):
             for j in range(i, self.dim):
                     #aux[i,j] = N.trace(C_inv @ Q_alpha[i] @ C_inv @ Q_alpha[j] @ (C_inv @ self.D - 0.5))
