@@ -202,7 +202,7 @@ class Likelihood:
         self.mat_list = Covariance_class_obj.fetch_response_matrix_list_sky()
         self.pvec = None
         self.threshold = Threshold
-        self.parameter_firstguess_list = Covariance_class_obj.make_binning_power()
+        self.parameter_model_values = Covariance_class_obj.make_binning_power()
         self.dim = Covariance_class_obj.alpha_dim
         self.CV = Covariance_class_obj
         self.nontrivial_mmode_list = self.filter_m_modes()

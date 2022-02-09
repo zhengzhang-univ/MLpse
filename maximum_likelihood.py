@@ -27,6 +27,7 @@ fdata.close()
 # methods using Jacobian only. However, if then number of parameters is so large that it costs
 # a lot to compute and inverse Hessian matrics, one should choose to use non-Newton methods, 
 # e.g., 'L-BFGS' method.
+
 with_Hessian = True
 
 if with_Hessian:
@@ -48,8 +49,10 @@ def Jacobian(pvec):
         test(pvec)
         return test.jac
 
-# Use the calculations with theoretical models as the first guess of the minimization.
-p0 = test.parameter_firstguess_list
+# Calculate theoretical predictions:
+p_th = test.parameter_model_values
+# Give first guess for optimisation:
+p0 = p_th
     
 
 st = time.time()
@@ -59,7 +62,10 @@ et = time.time()
 if mpiutil.rank0:
     print("***** Time elapsed for the minimization: %f *****" % (et - st))
     Aux1, Aux2 = N.broadcast_arrays(CV.k_par_centers[:, N.newaxis], CV.k_perp_centers)
-    with h5py.File("MLPSE.hdf5", "w") as f:
+    with h5py.File("MLPSE"+Opt_Method+str(len(res.x))+".hdf5", "w") as f:
+        f.create_dataset("first guess", data=p0)
+        f.create_dataset("theory", data=p_th)
+        f.create_dataset("log likelihood",data=test.fun)
         f.create_dataset("power spectrum", data=res.x)
         f.create_dataset("k parallel", data=Aux1.flatten())
         f.create_dataset("k perp", data=Aux2.flatten())
