@@ -37,7 +37,7 @@ if with_Hessian:
         return test.hess
 else:
     test = Likelihood(vis, CV)
-    Opt_Method = 'L-BFGS'
+    Opt_Method = 'L-BFGS-B'
     Hessian = None
 
 def log_likelihood(pvec):
