@@ -16,16 +16,30 @@ pipeline_info = Parameters_collection.from_config(configfile)
 
 CV = Covariances(0,0.3,2,0,0.15,2,pipeline_info['dk_1thresh_fg_3thresh'])
 
-# Here the instance of the data array is in the sky basis. It will be changed into KL basis in the program.
-# More realistic data, as the input of the program, should be the m-mode visibilities.
+# Fetch KL-basis visibilities
+data_path ='/data/zzhang/draco_out/klmode_group_0.h5'
+fdata = h5py.File(data_path,'r')
+vis=fdata['vis'][...]
+fdata.close()
 
-fakedata_sky = 100.* N.ones(shape=(16,4,201)) # shape: (frequency, polarisation, lmax+1)
+# In the step of minimization, one will have to choose whether to use Newton methods or not.
+# Newtons methods make use of both Jocobian and Hessian, which is conceptually faster than 
+# methods using Jacobian only. However, if then number of parameters is so large that it costs
+# a lot to compute and inverse Hessian matrics, one should choose to use non-Newton methods, 
+# e.g., 'L-BFGS' method.
+with_Hessian = True
 
-test = Likelihood(fakedata_sky, CV)
+if with_Hessian:
+    test = Likelihood_with_hess(vis, CV)
+    Opt_Method = 'Newton-CG'
+    def Hessian(pvec):
+        test(pvec)
+        return test.hess
+else:
+    test = Likelihood(vis, CV)
+    Opt_Method = 'L-BFGS'
+    Hessian = None
 
-# Use the calculations with theoretical models as the first guess of the minimization.
-p0 = test.parameter_firstguess_list
-    
 def log_likelihood(pvec):
         test(pvec)
         return test.fun
@@ -33,20 +47,22 @@ def log_likelihood(pvec):
 def Jacobian(pvec):
         test(pvec)
         return test.jac
+
+# Use the calculations with theoretical models as the first guess of the minimization.
+p0 = test.parameter_firstguess_list
     
-def Hessian(pvec):
-        test(pvec)
-        return test.hess
 
 st = time.time()
-res = minimize(log_likelihood, p0, method='Newton-CG', jac= Jacobian, hess=Hessian)
-# rex.x is the result.
+res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, hess=Hessian) # rex.x is the result.
 et = time.time()
 
 if mpiutil.rank0:
     print("***** Time elapsed for the minimization: %f *****" % (et - st))
+    Aux1, Aux2 = N.broadcast_arrays(CV.k_par_centers[:, N.newaxis], CV.k_perp_centers)
     with h5py.File("MLPSE.hdf5", "w") as f:
         f.create_dataset("power spectrum", data=res.x)
+        f.create_dataset("k parallel", data=Aux1.flatten())
+        f.create_dataset("k perp", data=Aux2.flatten())
         f.create_dataset("k centers", data=CV.k_centers)
         
 

@@ -196,36 +196,30 @@ class Covariances(kspace_cartesian):
     
     
     
-    
-
-    
 class Likelihood:
-    def __init__(self, data_sky, Covariance_class_obj):
-        self.data_sky=data_sky
+    def __init__(self, data_kl, Covariance_class_obj, Threshold = None):
+        self.data_kl = data_kl
         self.mat_list = Covariance_class_obj.fetch_response_matrix_list_sky()
         self.pvec = None
-        self.threshold = None
-        #self.threshold = Covariance_class_obj.kltrans.threshold
+        self.threshold = Threshold
         self.parameter_firstguess_list = Covariance_class_obj.make_binning_power()
         self.dim = Covariance_class_obj.alpha_dim
         self.CV = Covariance_class_obj
         self.nontrivial_mmode_list = self.filter_m_modes()
         
-
     def __call__(self, pvec):
         if self.pvec is pvec:
             return
         else:
-            self.pvec = pvec
+            self.pvec = pvec                
             Result = mpiutil.parallel_map(
                 self.make_funs_mi, self.nontrivial_mmode_list
             )
             # Unpack into separate lists of the log-likelihood function, jacobian, and hessian
-            fun, jac, hess = list(zip(*Result))
+            fun, jac = list(zip(*Result))
             self.fun = sum(list(fun))
             self.jac = sum(list(jac))
-            self.hess = sum(list(hess))
-     
+            
     def filter_m_modes(self):
         m_list = []
         for mi in range(self.CV.telescope.mmax + 1):
@@ -236,12 +230,57 @@ class Likelihood:
         return m_list
     
     def make_funs_mi(self, mi):
-        data_kl = self.CV.kltrans.project_vector_sky_to_kl(mi, self.data_sky, self.threshold)
-        v_column = N.matrix(data_kl.reshape((-1,1)))
-        Dmat = v_column @ v_column.H
         
         Q_alpha_list = self.CV.make_response_matrix_kl_m(mi, self.mat_list, self.threshold)
         C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
+        len = C.shape[0]
+        vis_kl = self.data_kl[mi, :len]
+        v_column = N.matrix(vis_kl.reshape((-1,1)))
+        Dmat = v_column @ v_column.H
+        
+        C_inv = scipy.linalg.inv(C)
+        C_inv_D = C_inv @ Dmat
+        
+        # compute m-mode log-likelihood
+        fun_mi = N.trace(N.log(C) + C_inv_D)
+        
+        # compute m-mode Jacobian
+        aux = (1. - C_inv_D) @ C_inv
+        pd = []
+        for i in range(self.dim):
+            # pd.append(N.trace(C_inv @ Q_alpha[i] @ (1. - C_inv @ self.Dmat))) 
+            # To save computing source, it can be simplified as
+            pd.append(N.trace(Q_alpha_list[i] @ aux)) 
+        jac_mi = N.array(pd).reshape((self.dim,))
+                
+        return fun_mi.real, jac_mi.real
+    
+
+    
+class Likelihood_with_hess(Likelihood):
+
+    def __call__(self, pvec):
+        if self.pvec is pvec:
+            return
+        else:
+            self.pvec = pvec                
+            Result = mpiutil.parallel_map(
+                self.make_funs_mi, self.nontrivial_mmode_list
+            )
+            # Unpack into separate lists of the log-likelihood function, jacobian, and hessian
+            fun, jac, hess = list(zip(*Result))
+            self.fun = sum(list(fun))
+            self.jac = sum(list(jac))
+            self.hess = sum(list(hess))
+    
+    def make_funs_mi(self, mi):
+        Q_alpha_list = self.CV.make_response_matrix_kl_m(mi, self.mat_list, self.threshold)
+        C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
+        len = C.shape[0]
+        vis_kl = self.data_kl[mi, :len]
+        v_column = N.matrix(vis_kl.reshape((-1,1)))
+        Dmat = v_column @ v_column.H
+        
         C_inv = scipy.linalg.inv(C)
         C_inv_D = C_inv @ Dmat
         
@@ -266,11 +305,9 @@ class Likelihood:
                 hess_mi[i,j] = hess_mi[j,i] = N.trace(Q_alpha_list[i] @ C_inv @ Q_alpha_list[j] @ aux)
                 
         return fun_mi.real, jac_mi.real, hess_mi.real
-    
-    #def project_data_tele_to_kl(self, mi, data_tele):
-        #aux = CV.beamtransfer.project_vector_telescope_to_svd(mi,data_tele)
-        #return CV.kltrans.project_vector_svd_to_kl(mi, aux, self.threshold):
 
+
+        
         
         
  
