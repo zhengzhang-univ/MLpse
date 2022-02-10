@@ -64,12 +64,12 @@ if mpiutil.rank0:
     print("Succeed or not? {}\n".format(res.success))
     print("{}\n".format(res.message))
     print("Number of iteration {}\n".format(res.nit))
+    print("Values of log-likelihood function {}\n".format(res.fun))
 
     Aux1, Aux2 = N.broadcast_arrays(CV.k_par_centers[:, N.newaxis], CV.k_perp_centers)
     with h5py.File("MLPSE"+Opt_Method+str(len(res.x))+".hdf5", "w") as f:
         f.create_dataset("first guess", data=p0)
         f.create_dataset("theory", data=p_th)
-        f.create_dataset("log likelihood",data=test.fun)
         f.create_dataset("power spectrum", data=res.x)
         f.create_dataset("k parallel", data=Aux1.flatten())
         f.create_dataset("k perp", data=Aux2.flatten())
