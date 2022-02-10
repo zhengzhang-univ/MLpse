@@ -93,13 +93,6 @@ class Covariances(kspace_cartesian):
     
         return mpiutil.parallel_map(fun, list(range(self.alpha_dim)))
     
-    #def make_response_matrix_kl_m(self, mi, response_matrix_list_sky, threshold = None):
-    #    
-    #    def fun(mat):
-    #        return self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
-    #    
-    #    return mpiutil.parallel_map(fun, response_matrix_list_sky)
-    
         
     def make_response_matrix_kl_m(self, mi, response_matrix_list_sky, threshold = None):
         response_matrix_list_kl = []
@@ -212,13 +205,11 @@ class Likelihood:
             return
         else:
             self.pvec = pvec                
-            Result = mpiutil.parallel_map(
-                self.make_funs_mi, self.nontrivial_mmode_list
-            )
+            fun = mpiutil.parallel_map(
+                                       self.make_funs_mi, self.nontrivial_mmode_list
+                                       )
             # Unpack into separate lists of the log-likelihood function, jacobian, and hessian
-            fun, jac = list(zip(*Result))
-            self.fun = sum(list(fun))
-            self.jac = sum(list(jac))
+            return sum(list(fun))
             
     def filter_m_modes(self):
         m_list = []
@@ -228,6 +219,43 @@ class Likelihood:
             else:
                 m_list.append(mi)
         return m_list
+    
+    def make_funs_mi(self, mi):
+        
+        Q_alpha_list = self.CV.make_response_matrix_kl_m(mi, self.mat_list, self.threshold)
+        C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
+        len = C.shape[0]
+        # Make sure C is exactly Hermitian.
+        for i in range(len):
+            C[i,i]= ( C[i,i] + C[i,i].conj() ) * .5
+        
+        Identity = N.identity(len)
+        vis_kl = self.data_kl[mi, :len]
+        v_column = N.matrix(vis_kl.reshape((-1,1)))
+        Dmat = v_column @ v_column.H
+        
+        C_inv = scipy.linalg.inv(C)
+        C_inv_D = C_inv @ Dmat
+        
+        # compute m-mode log-likelihood
+        fun_mi = N.trace(N.log(C) + C_inv_D)
+
+                
+        return fun_mi.real
+    
+class Likelihood_with_J_only(Likelihood):
+    def __call__(self, pvec):
+        if self.pvec is pvec:
+            return
+        else:
+            self.pvec = pvec                
+            Result = mpiutil.parallel_map(
+                self.make_funs_mi, self.nontrivial_mmode_list
+            )
+            # Unpack into separate lists of the log-likelihood function, jacobian, and hessian
+            fun, jac = list(zip(*Result))
+            self.fun = sum(list(fun))
+            self.jac = sum(list(jac))
     
     def make_funs_mi(self, mi):
         
@@ -256,9 +284,7 @@ class Likelihood:
                 
         return fun_mi.real, jac_mi.real
     
-
-    
-class Likelihood_with_hess(Likelihood):
+class Likelihood_with_J_H(Likelihood):
 
     def __call__(self, pvec):
         if self.pvec is pvec:

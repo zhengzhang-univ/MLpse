@@ -60,7 +60,11 @@ res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, hess=Hessia
 et = time.time()
 
 if mpiutil.rank0:
-    print("***** Time elapsed for the minimization: %f *****" % (et - st))
+    print("***** Time elapsed for the minimization: %f ***** \n" % (et - st))
+    print("Succeed or not? {}\n".format(res.success))
+    print("{}\n".format(res.message))
+    print("Number of iteration {}\n".format(res.nit))
+
     Aux1, Aux2 = N.broadcast_arrays(CV.k_par_centers[:, N.newaxis], CV.k_perp_centers)
     with h5py.File("MLPSE"+Opt_Method+str(len(res.x))+".hdf5", "w") as f:
         f.create_dataset("first guess", data=p0)
