@@ -28,35 +28,40 @@ fdata.close()
 # a lot to compute and inverse Hessian matrics, one should choose to use non-Newton methods, 
 # e.g., 'L-BFGS' method.
 
+p_th = test.parameter_model_values
+avg = sum(p_th)/len(p_th)
+scaling_coef = p_th/avg
+
 with_Hessian = True
 
 if with_Hessian:
     test = Likelihood_with_hess(vis, CV)
-    Opt_Method = 'Newton-CG'
+    Opt_Method = 'trust-exact'
     def Hessian(pvec):
-        test(pvec)
+        aux = [a*b for a,b in zip(pvec, scaling_coef)]
+	test(aux)
         return test.hess
 else:
     test = Likelihood(vis, CV)
-    Opt_Method = 'L-BFGS-B'
+    Opt_Method = 'BFGS'
     Hessian = None
 
 def log_likelihood(pvec):
-        test(pvec)
-        return test.fun
+    aux = [a*b for a,b in zip(pvec, scaling_coef)]
+    test(aux)
+    return test.fun
     
 def Jacobian(pvec):
-        test(pvec)
-        return test.jac
+    aux = [a*b for a,b in zip(pvec, scaling_coef)]    
+    test(aux)
+    return test.jac
 
-# Calculate theoretical predictions:
-p_th = test.parameter_model_values
 # Give first guess for optimisation:
-p0 = p_th
+p0 =  [a/b for a,b in zip(p_th, scaling_coef)]
     
 
 st = time.time()
-res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, hess=Hessian) # rex.x is the result.
+res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, hess=Hessian, tol=1e-2, options={'gtol': 1e-2, 'disp': True, 'eta': avg}) # rex.x is the result.
 et = time.time()
 
 if mpiutil.rank0:
