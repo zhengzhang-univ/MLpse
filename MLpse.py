@@ -226,8 +226,8 @@ class Likelihood:
         C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
         len = C.shape[0]
         # Make sure C is exactly Hermitian.
-        for i in range(len):
-            C[i,i]= ( C[i,i] + C[i,i].conj() ) * .5
+        #for i in range(len):
+        #    C[i,i]= ( C[i,i] + C[i,i].conj() ) * .5
         
         Identity = N.identity(len)
         vis_kl = self.data_kl[mi, :len]
