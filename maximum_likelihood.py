@@ -29,36 +29,42 @@ fdata.close()
 # e.g., 'L-BFGS' method.
 
 p_th = test.parameter_model_values
-avg = sum(p_th)/len(p_th)
-scaling_coef = p_th/avg
+#avg = sum(p_th)/len(p_th)
+#scaling_coef = p_th/avg
 
-with_Hessian = True
+
+
+with_Hessian = False
 
 if with_Hessian:
-    test = Likelihood_with_hess(vis, CV)
+    test = Likelihood_with_J_H(vis, CV)
     Opt_Method = 'trust-exact'
     def Hessian(pvec):
         aux = [a*b for a,b in zip(pvec, scaling_coef)]
-	test(aux)
+        test(aux)
         return test.hess
 else:
-    test = Likelihood(vis, CV)
+    test = Likelihood_with_J_only(vis, CV)
     Opt_Method = 'BFGS'
     Hessian = None
 
 def log_likelihood(pvec):
-    aux = [a*b for a,b in zip(pvec, scaling_coef)]
+    #aux = [a*b for a,b in zip(pvec, scaling_coef)]
+    aux = N.exp(pvec) 
     test(aux)
     return test.fun
     
 def Jacobian(pvec):
-    aux = [a*b for a,b in zip(pvec, scaling_coef)]    
+    #aux = [a*b for a,b in zip(pvec, scaling_coef)]    
+    aux = N.exp(pvec)
     test(aux)
-    return test.jac
+    #return test.jac
+    result = [a*b for a, b in zip(test.jac,aux) ]
+    return result
+
 
 # Give first guess for optimisation:
-p0 =  [a/b for a,b in zip(p_th, scaling_coef)]
-    
+p0 = N.log(p_th)    
 
 st = time.time()
 res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, hess=Hessian, tol=1e-2, options={'gtol': 1e-2, 'disp': True, 'eta': avg}) # rex.x is the result.

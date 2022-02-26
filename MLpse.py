@@ -243,6 +243,20 @@ class Likelihood:
                 
         return fun_mi.real
     
+    def calculate_Errors(self):
+        def Hessian_m(mi):
+            Q_alpha_list = self.CV.make_response_matrix_kl_m(mi, self.mat_list, self.threshold)
+            C = self.CV.make_covariance_kl_m(self.parameter_model_values, mi, Q_alpha_list, self.threshold)
+            len = C.shape[0]
+            C_inv = scipy.linalg.inv(C)
+            hess_mi = N.empty((self.dim,self.dim), dtype='complex128')
+            for i in range(self.dim):
+                for j in range(i, self.dim):
+                    hess_mi[i,j] = hess_mi[j,i] = N.trace(C_inv @ Q_alpha_list[i] @ C_inv @ Q_alpha_list[j])
+            return hess_mi.real
+        fun = mpiutil.parallel_map(Hessian_m, self.nontrivial_mmode_list)
+        return scipy.linalg.inv(sum(list(fun)))
+    
 class Likelihood_with_J_only(Likelihood):
     def __call__(self, pvec):
         if self.pvec is pvec:
@@ -330,7 +344,7 @@ class Likelihood_with_J_H(Likelihood):
         for i in range(self.dim):
             for j in range(i, self.dim):
                     #aux[i,j] = N.trace(C_inv @ Q_alpha[i] @ C_inv @ Q_alpha[j] @ (C_inv @ self.D - 0.5))
-                hess_mi[i,j] = hess_mi[j,i] = N.trace(Q_alpha_list[i] @ C_inv @ Q_alpha_list[j] @ aux)
+                hess_mi[i,j] = hess_mi[j,i] = 2. * N.trace(Q_alpha_list[i] @ C_inv @ Q_alpha_list[j] @ aux)
                 
         return fun_mi.real, jac_mi.real, hess_mi.real
 
