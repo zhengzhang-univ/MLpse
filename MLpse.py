@@ -227,7 +227,8 @@ class Likelihood:
         m_list = []
         for mi in range(self.CV.telescope.mmax + 1):
             if self.CV.kltrans.modes_m(mi)[0] is None:
-                print("The m={} mode is null.".format(mi))
+                if mpiutil.rank0:
+                    print("The m={} mode is null.".format(mi))
             else:
                 m_list.append(mi)
         return m_list

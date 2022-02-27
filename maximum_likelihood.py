@@ -78,7 +78,7 @@ def Jacobian(pvec):
 p0 = [N.log(a/b) for a,b in zip(p_th, scaling_coef)]
 
 st = time.time()
-res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, norm = 2, tol=1e-2,options={'gtol': 1e-3, 'disp': True, 'maxiter':200, 'return_all':True}) # rex.x is the result.
+res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, tol=1e-2,options={'gtol': 1e-3, 'disp': True, 'maxiter':200, 'return_all':True}) # rex.x is the result.
 et = time.time()
 
 print("x values: {}".format(res.x))
