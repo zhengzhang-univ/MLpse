@@ -28,7 +28,7 @@ fdata.close()
 # a lot to compute and inverse Hessian matrics, one should choose to use non-Newton methods, 
 # e.g., 'L-BFGS' method.
 
-p_th = test.parameter_model_values
+
 #avg = sum(p_th)/len(p_th)
 #scaling_coef = p_th/avg
 
@@ -45,13 +45,17 @@ p_th = test.parameter_model_values
 #        return test.hess
 #else:
 test = Likelihood_with_J_only(vis, CV)
+p_th = test.parameter_model_values
 Opt_Method = 'BFGS'
 Hessian = None
 Fisher = test.calculate_Errors()
 scaling_coef = []
-
+Fisher_factor = N.trace(Fisher)/Fisher.shape[0]
 for i in range(Fisher.shape[0]):
-    scaling_coef.append(Fisher[i,i])
+    scaling_coef.append(Fisher[i,i]/Fisher_factor)
+    
+    
+    
 
 def log_likelihood(pvec):
     aux1 = N.exp(pvec) 
@@ -71,8 +75,7 @@ def Jacobian(pvec):
 
 
 # Give first guess for optimisation:
-p0 = [a/b for a,b in zip(N.log(p_th), scaling_coef)]
-
+p0 = [N.log(a/b) for a,b in zip(p_th, scaling_coef)]
 
 st = time.time()
 res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, norm = 2, tol=1e-2,options={'gtol': 1e-3, 'disp': True, 'maxiter':200, 'return_all':True}) # rex.x is the result.

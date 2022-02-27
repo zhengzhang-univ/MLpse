@@ -89,17 +89,27 @@ class Covariances(kspace_cartesian):
             Q_alpha = N.zeros((npol,npol,ldim,nfreq,nfreq))
             Q_alpha[0,0,:,:,:] = self.make_response_matrix_sky(i)
             return Q_alpha
-
-    
-        return mpiutil.parallel_map(fun, list(range(self.alpha_dim)))
+        
+        # Filter some trivial bands
+        aux_list = mpiutil.parallel_map(fun, list(range(self.alpha_dim)))
+        
+        self.para_ind_list=[]
+        Resp_mat_list=[]
+        for i in range(self.alpha_dim):
+            if not N.all(aux_list[i]==0):
+                self.para_ind_list.append(i)
+                Resp_mat_list.append(aux_list[i])
+        self.nonzero_alpha_dim=len(self.para_ind_list)
+        return Resp_mat_list
     
         
     def make_response_matrix_kl_m(self, mi, response_matrix_list_sky, threshold = None):
         response_matrix_list_kl = []
-        for i in range(self.alpha_dim):
+        for i in range(self.nonzero_alpha_dim):
             mat = response_matrix_list_sky[i]
-            response_matrix_list_kl.append(self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
-                                          )
+            aux1 = self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
+            aux2 = (aux1 + aux1.conj().T)/2 # Make the quasi-Hermitian the exact Hermitian
+            response_matrix_list_kl.append(aux2)
         return response_matrix_list_kl
     
    #make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
@@ -107,8 +117,8 @@ class Covariances(kspace_cartesian):
     def make_covariance_kl_m(self, pvec, mi, response_mat_list_kl, threshold = None):
         
         cv_mat = self.make_noise_covariance_kl_m(mi, threshold)
-        assert len(pvec)==self.alpha_dim
-        for i in range(self.alpha_dim):
+        assert len(pvec)==self.nonzero_alpha_dim
+        for i in range(self.nonzero_alpha_dim):
             cv_mat += pvec[i]*response_mat_list_kl[i]
         return cv_mat
     
@@ -167,19 +177,17 @@ class Covariances(kspace_cartesian):
         cv_fg = self.make_foregrounds_covariance_sky()
         npower = self.make_instrumental_noise_telescope()
         # Project the foregrounds from the sky onto the telescope.
-        cvb_n = self.beamtransfer.project_matrix_sky_to_svd(mi, cv_fg)
-
-        # To regularise the noise matrix??
+        cv_fg_svd = self.beamtransfer.project_matrix_sky_to_svd(mi, cv_fg)
 
         # Project into SVD basis and add into noise matrix
-        aux = self.beamtransfer.project_matrix_diagonal_telescope_to_svd(mi, npower)
+        cv_thermal_svd = self.beamtransfer.project_matrix_diagonal_telescope_to_svd(mi, npower)
     
-        cvb_totaln = cvb_n + aux
+        cv_totaln = cv_fg_svd + cv_thermal_svd
 
         # Project into KL basis
-        cv_n_kl = self.kltrans.project_matrix_svd_to_kl(mi, cvb_totaln, threshold)
+        cv_n_kl = self.kltrans.project_matrix_svd_to_kl(mi, cv_totaln, threshold)
 
-        return cv_n_kl
+        return (cv_n_kl + cv_n_kl.conj().T)/2
     
     #def generate_covariance(self, mi):
         
@@ -195,10 +203,14 @@ class Likelihood:
         self.mat_list = Covariance_class_obj.fetch_response_matrix_list_sky()
         self.pvec = None
         self.threshold = Threshold
-        self.parameter_model_values = Covariance_class_obj.make_binning_power()
-        self.dim = Covariance_class_obj.alpha_dim
         self.CV = Covariance_class_obj
+        self.dim = self.CV.nonzero_alpha_dim
         self.nontrivial_mmode_list = self.filter_m_modes()
+        parameters = self.CV.make_binning_power()
+        self.parameter_model_values = []
+        for i in self.CV.para_ind_list:
+            self.parameter_model_values.append(parameters[i])
+            
         
     def __call__(self, pvec):
         if self.pvec is pvec:
@@ -240,7 +252,6 @@ class Likelihood:
         # compute m-mode log-likelihood
         fun_mi = N.trace(N.log(C) + C_inv_D)
 
-                
         return fun_mi.real
     
     def calculate_Errors(self):
