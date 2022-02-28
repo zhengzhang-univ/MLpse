@@ -61,41 +61,36 @@ Hessian = None
 #scaling_coef = N.array(scaling_coef)
 
 Scaling = True
+
 if Scaling:
     def log_likelihood(xvec):
-        xvec = N.array(xvec)
-        pvec = N.exp(xvec)*p_th
+        # xvec should be N.array object.
+        #pvec = N.exp(xvec)*p_th
+        pvec = N.exp(xvec)
+        test(pvec)
+        return test.fun    
+    def Jacobian(xvec):
+        #pvec = N.exp(xvec)*p_th
+        pvec = N.exp(xvec)
+        test(pvec)
+        result = test(pvec).jac*pvec
+        return result
+else:
+    def log_likelihood(pvec):
         test(pvec)
         return test.fun
-    
-    def Jacobian(xvec):
-        pvec = N.exp(xvec)*p_th
+    def Jacobian(pvec):
         test(pvec)
-        result = 
-        
+        return test.jac
 
-def log_likelihood(pvec):
-    aux1 = N.exp(pvec) 
-    aux = [a*b for a,b in zip(aux1, scaling_coef)]
-    test(aux)
-    return test.fun
-    
-def Jacobian(pvec):
-    #aux = [a*b for a,b in zip(pvec, scaling_coef)]    
-    aux1 = N.exp(pvec)
-    aux = [a*b for a,b in zip(aux1, scaling_coef)]
-    test(aux)
-    #return test.jac
-    result = [a*b for a, b in zip(test.jac,aux)]
-    Res_scaling = [a*b for a, b in zip(result,scaling_coef)]
-    return N.array(Res_scaling)
 
 
 # Give first guess for optimisation:
-p0 = [N.log(a/b) for a,b in zip(p_th, scaling_coef)]
+# N.zeros(test.dim)
+p0 = N.log(p_th)
 
 st = time.time()
-res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, tol=1e-2,options={'gtol': 1e-3, 'disp': True, 'maxiter':200, 'return_all':True}) # rex.x is the result.
+res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, tol=1e-3,options={'gtol': 1e-4, 'disp': True, 'maxiter':300, 'return_all':True}) # rex.x is the result.
 et = time.time()
 
 print("x values: {}".format(res.x))
