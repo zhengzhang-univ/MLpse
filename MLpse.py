@@ -238,10 +238,6 @@ class Likelihood:
         Q_alpha_list = self.CV.make_response_matrix_kl_m(mi, self.mat_list, self.threshold)
         C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
         len = C.shape[0]
-        # Make sure C is exactly Hermitian.
-        #for i in range(len):
-        #    C[i,i]= ( C[i,i] + C[i,i].conj() ) * .5
-        
         Identity = N.identity(len)
         vis_kl = self.data_kl[mi, :len]
         v_column = N.matrix(vis_kl.reshape((-1,1)))
@@ -251,23 +247,24 @@ class Likelihood:
         C_inv_D = C_inv @ Dmat
         
         # compute m-mode log-likelihood
-        fun_mi = N.trace(N.log(C) + C_inv_D)
+        fun_mi = N.trace(N.log(C)) + N.trace(C_inv_D)
 
         return fun_mi.real
     
     def calculate_Errors(self):
-        def Hessian_m(mi):
-            Q_alpha_list = self.CV.make_response_matrix_kl_m(mi, self.mat_list, self.threshold)
-            C = self.CV.make_covariance_kl_m(self.parameter_model_values, mi, Q_alpha_list, self.threshold)
-            len = C.shape[0]
-            C_inv = scipy.linalg.inv(C)
-            hess_mi = N.empty((self.dim,self.dim), dtype='complex128')
-            for i in range(self.dim):
-                for j in range(i, self.dim):
-                    hess_mi[i,j] = hess_mi[j,i] = N.trace(C_inv @ Q_alpha_list[i] @ C_inv @ Q_alpha_list[j])
-            return hess_mi.real
-        fun = mpiutil.parallel_map(Hessian_m, self.nontrivial_mmode_list)
+        fun = mpiutil.parallel_map(self.Fisher_m, self.nontrivial_mmode_list)
         return scipy.linalg.inv(sum(list(fun)))
+    
+    def Fisher_m(self,mi):
+        Q_alpha_list = self.CV.make_response_matrix_kl_m(mi, self.mat_list, self.threshold)
+        C = self.CV.make_covariance_kl_m(self.parameter_model_values, mi, Q_alpha_list, self.threshold)
+        #len = C.shape[0]
+        C_inv = scipy.linalg.inv(C)
+        hess_mi = N.empty((self.dim,self.dim), dtype='complex128')
+        for i in range(self.dim):
+            for j in range(i, self.dim):
+                hess_mi[i,j] = hess_mi[j,i] = N.trace(C_inv @ Q_alpha_list[i] @ C_inv @ Q_alpha_list[j])
+        return hess_mi.real
     
 class Likelihood_with_J_only(Likelihood):
     def __call__(self, pvec):
@@ -294,17 +291,20 @@ class Likelihood_with_J_only(Likelihood):
         Dmat = v_column @ v_column.H
         
         C_inv = scipy.linalg.inv(C)
+        C_inv = (C_inv + C_inv.conj().T)/2
         C_inv_D = C_inv @ Dmat
         
         # compute m-mode log-likelihood
-        fun_mi = N.trace(N.log(C) + C_inv_D)
+        fun_mi = N.trace(N.log(C)) + N.trace(C_inv_D)
+        #fun_mi = N.trace(N.log(C)) + N.einsum('ij,ji->', C_inv, Dmat)
         
         # compute m-mode Jacobian
         aux = (Identity - C_inv_D) @ C_inv
         pd = []
         for i in range(self.dim):
             # pd.append(N.trace(C_inv @ Q_alpha[i] @ (1. - C_inv @ self.Dmat))) 
-            # To save computing source, it can be simplified as
+            # N.einsum('ij,ji->', Q_alpha_list[i], aux)
+            #aux1 = N.einsum('ij,ji->', C_inv, Q_alpha_list[i]) - N.einsum('ij,jk,kl,li->', C_inv, Q_alpha_list[i] , C_inv, Dmat)
             pd.append(N.trace(Q_alpha_list[i] @ aux)) 
         jac_mi = N.array(pd).reshape((self.dim,))
                 
@@ -339,7 +339,7 @@ class Likelihood_with_J_H(Likelihood):
         C_inv_D = C_inv @ Dmat
         
         # compute m-mode log-likelihood
-        fun_mi = N.trace(N.log(C) + C_inv_D)
+        fun_mi = N.trace(N.log(C)) + N.trace(C_inv_D)
         
         # compute m-mode Jacobian
         aux = (Identity - C_inv_D) @ C_inv

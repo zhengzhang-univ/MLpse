@@ -46,16 +46,33 @@ fdata.close()
 #else:
 test = Likelihood_with_J_only(vis, CV)
 p_th = test.parameter_model_values
-Opt_Method = 'BFGS'
+p_th = N.array(p_th)
+
+Opt_Method = 'CG'
 Hessian = None
-Fisher = test.calculate_Errors()
-scaling_coef = []
-Fisher_factor = N.trace(Fisher)/Fisher.shape[0]
-for i in range(Fisher.shape[0]):
-    scaling_coef.append(Fisher[i,i]/Fisher_factor)
+
+#print("Start Fisher ...")
+#Fisher = test.calculate_Errors()
+#print("Fisher finished...")
+#scaling_coef = []
+#Fisher_factor = N.trace(Fisher)/Fisher.shape[0]
+#for i in range(Fisher.shape[0]):
+#    scaling_coef.append(Fisher[i,i]/Fisher_factor)
+#scaling_coef = N.array(scaling_coef)
+
+Scaling = True
+if Scaling:
+    def log_likelihood(xvec):
+        xvec = N.array(xvec)
+        pvec = N.exp(xvec)*p_th
+        test(pvec)
+        return test.fun
     
-    
-    
+    def Jacobian(xvec):
+        pvec = N.exp(xvec)*p_th
+        test(pvec)
+        result = 
+        
 
 def log_likelihood(pvec):
     aux1 = N.exp(pvec) 
