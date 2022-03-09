@@ -206,6 +206,7 @@ class Likelihood:
         self.CV = Covariance_class_obj
         self.dim = self.CV.nonzero_alpha_dim
         self.nontrivial_mmode_list = self.filter_m_modes()
+        self.mmode_count = len(self.nontrivial_mmode_list)
         parameters = self.CV.make_binning_power()
         self.parameter_model_values = []
         for i in self.CV.para_ind_list:
@@ -221,7 +222,7 @@ class Likelihood:
                                        self.make_funs_mi, self.nontrivial_mmode_list
                                        )
             # Unpack into separate lists of the log-likelihood function, jacobian, and hessian
-            return sum(list(fun))
+            return sum(list(fun))/self.mmode_count
             
     def filter_m_modes(self):
         m_list = []
@@ -277,8 +278,8 @@ class Likelihood_with_J_only(Likelihood):
             )
             # Unpack into separate lists of the log-likelihood function, jacobian, and hessian
             fun, jac = list(zip(*Result))
-            self.fun = sum(list(fun))
-            self.jac = sum(list(jac))
+            self.fun = sum(list(fun))/self.mmode_count
+            self.jac = sum(list(jac))/self.mmode_count
     
     def make_funs_mi(self, mi):
         
@@ -322,9 +323,9 @@ class Likelihood_with_J_H(Likelihood):
             )
             # Unpack into separate lists of the log-likelihood function, jacobian, and hessian
             fun, jac, hess = list(zip(*Result))
-            self.fun = sum(list(fun))
-            self.jac = sum(list(jac))
-            self.hess = sum(list(hess))
+            self.fun = sum(list(fun))/self.mmode_count
+            self.jac = sum(list(jac))/self.mmode_count
+            self.hess = sum(list(hess))/self.mmode_count
     
     def make_funs_mi(self, mi):
         Q_alpha_list = self.CV.make_response_matrix_kl_m(mi, self.mat_list, self.threshold)

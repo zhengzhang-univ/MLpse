@@ -5,6 +5,7 @@ import numpy as N
 from caput import mpiutil
 import time
 import h5py
+from numpy import linalg as LA
 
 # Path to the parameter file.
 configfile = "/data/zzhang/sim1/bt_matrices/config.yaml" 
@@ -34,63 +35,95 @@ fdata.close()
 
 
 
-#with_Hessian = False
 
-#if with_Hessian:
-#    test = Likelihood_with_J_H(vis, CV)
-#    Opt_Method = 'trust-exact'
-#    def Hessian(pvec):
-#        aux = [a*b for a,b in zip(pvec, scaling_coef)]
-#        test(aux)
-#        return test.hess
-#else:
-test = Likelihood_with_J_only(vis, CV)
+
+
+Scaling = False
+NewtonMethods = False
+Regularized = True
+
+if NewtonMethods:
+    test = Likelihood_with_J_H(vis, CV)
+else:
+    test = Likelihood_with_J_only(vis, CV)
+    
 p_th = test.parameter_model_values
 p_th = N.array(p_th)
 
-Opt_Method = 'CG'
 Hessian = None
 
-#print("Start Fisher ...")
-#Fisher = test.calculate_Errors()
-#print("Fisher finished...")
-#scaling_coef = []
-#Fisher_factor = N.trace(Fisher)/Fisher.shape[0]
-#for i in range(Fisher.shape[0]):
-#    scaling_coef.append(Fisher[i,i]/Fisher_factor)
-#scaling_coef = N.array(scaling_coef)
-
-Scaling = True
-
 if Scaling:
-    def log_likelihood(xvec):
-        # xvec should be N.array object.
-        #pvec = N.exp(xvec)*p_th
-        pvec = N.exp(xvec)
-        test(pvec)
-        return test.fun    
-    def Jacobian(xvec):
-        #pvec = N.exp(xvec)*p_th
-        pvec = N.exp(xvec)
-        test(pvec)
-        result = test(pvec).jac*pvec
-        return result
-else:
+    if not Regularized:
+        def log_likelihood(xvec):
+            # xvec should be N.array object.
+            #pvec = N.exp(xvec)*p_th
+            pvec = N.exp(xvec)
+            test(pvec)
+            return test.fun    
+        def Jacobian(xvec):
+            #pvec = N.exp(xvec)*p_th
+            pvec = N.exp(xvec)
+            test(pvec)
+            result = test.jac*pvec
+            return result
+        if NewtonMethods:
+            def Hessian(xvec):
+                pvec = N.exp(xvec)
+                test(pvec)
+                return N.diag(pvec**2)@test.hess
+    else:
+        def log_likelihood(xvec):
+            pvec = N.exp(xvec)
+            test(pvec)
+            return test.fun + LA.norm(xvec)
+        def Jacobian(xvec):
+            pvec = N.exp(xvec)
+            test(pvec)
+            return test.jac*pvec + xvec/LA.norm(xvec)
+        if NewtonMethods:
+            def hess_of_norm(pvec):
+                norm = LA.norm(pvec)
+                return N.identity(len(pvec))/norm - N.outer(pvec,pvec)/(norm**3.)
+            def Hessian(xvec):
+                pvec = N.exp(xvec)
+                test(pvec)
+                result = N.diag(pvec**2)@test.hess + hess_of_norm(xvec)
+                return result
+elif not Regularized:
     def log_likelihood(pvec):
         test(pvec)
         return test.fun
     def Jacobian(pvec):
         test(pvec)
         return test.jac
-
-
+    if NewtonMethods:
+        def Hessian(pvec):
+            test(pvec)
+            return test.hess
+else:
+    def log_likelihood(pvec):
+        test(pvec)
+        return test.fun + LA.norm(pvec)
+    def Jacobian(pvec):
+        test(pvec)
+        return test.jac + pvec/LA.norm(pvec)
+    if NewtonMethods:
+        def hess_of_norm(pvec):
+            norm = LA.norm(pvec)
+            return N.identity(len(pvec))/norm - N.outer(pvec,pvec)/(norm**3.)
+        def Hessian(pvec):
+            test(pvec)
+            result = test.hess + hess_of_norm(pvec)
+            return result
 
 # Give first guess for optimisation:
 # N.zeros(test.dim)
-p0 = N.log(p_th)
+ p0 = N.log(p_th)
+#p0 = p_th
+Opt_Method = 'CG'
 
 st = time.time()
-res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, tol=1e-3,options={'gtol': 1e-4, 'disp': True, 'maxiter':300, 'return_all':True}) # rex.x is the result.
+res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, tol=1e-3, options={'gtol': 1e-4, 'disp': True, 'maxiter':300, 'return_all':True}) # rex.x is the result.
 et = time.time()
 
 print("x values: {}".format(res.x))
