@@ -245,6 +245,7 @@ class Likelihood:
         Dmat = v_column @ v_column.H
         
         C_inv = scipy.linalg.inv(C)
+        C_inv = (C_inv + C_inv.conj().T)/2
         C_inv_D = C_inv @ Dmat
         
         # compute m-mode log-likelihood
