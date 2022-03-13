@@ -298,7 +298,6 @@ class Likelihood_with_J_only(Likelihood):
         
         # compute m-mode log-likelihood
         fun_mi = N.slogdet(C) + N.trace(C_inv_D)
-        #fun_mi = N.trace(N.log(C)) + N.einsum('ij,ji->', C_inv, Dmat)
         
         # compute m-mode Jacobian
         aux = (Identity - C_inv_D) @ C_inv
@@ -341,7 +340,7 @@ class Likelihood_with_J_H(Likelihood):
         C_inv_D = C_inv @ Dmat
         
         # compute m-mode log-likelihood
-        fun_mi = N.trace(N.log(C)) + N.trace(C_inv_D)
+        fun_mi = N.slogdet(C) + N.trace(C_inv_D)
         
         # compute m-mode Jacobian
         aux = (Identity - C_inv_D) @ C_inv
