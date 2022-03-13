@@ -15,7 +15,7 @@ configfile = "/data/zzhang/sim1/bt_matrices/config.yaml"
 pipeline_info = Parameters_collection.from_config(configfile) 
 
 
-CV = Covariances(0,0.3,3,0,0.15,6,pipeline_info['dk_1thresh_fg_3thresh'])
+CV = Covariances(0,0.3,2,0,0.15,2,pipeline_info['dk_1thresh_fg_3thresh'])
 
 # Fetch KL-basis visibilities
 data_path ='/data/zzhang/draco_out/klmode_group_0.h5'
@@ -39,7 +39,7 @@ fdata.close()
 
 
 Scaling = True
-NewtonMethods = False
+NewtonMethods = True
 Regularized = True
 
 if NewtonMethods:
@@ -70,7 +70,7 @@ if Scaling:
             def Hessian(xvec):
                 pvec = N.exp(xvec)
                 test(pvec)
-                return N.diag(pvec**2)@test.hess
+                return N.diagflat(pvec**2)@test.hess
     else:
         def log_likelihood(xvec):
             pvec = N.exp(xvec)
@@ -87,7 +87,7 @@ if Scaling:
             def Hessian(xvec):
                 pvec = N.exp(xvec)
                 test(pvec)
-                result = N.diag(pvec**2)@test.hess + hess_of_norm(xvec)
+                result = N.diagflat(pvec**2)@test.hess + hess_of_norm(xvec)
                 return result
 elif not Regularized:
     def log_likelihood(pvec):
@@ -120,10 +120,11 @@ else:
 # N.zeros(test.dim)
 p0 = N.log(p_th)
 #p0 = p_th
-Opt_Method = 'BFGS'
+Opt_Method = 'Newton-CG'
 
 st = time.time()
-res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, tol=1e-3, options={'gtol': 1e-4, 'disp': True, 'maxiter':300, 'return_all':True}) # rex.x is the result.
+#res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, tol=1e-3, options={'gtol': 1e-4, 'disp': True, 'maxiter':300, 'return_all':True}) # rex.x is the result.
+res = minimize(log_likelihood, p0, method='trust-krylov', jac= Jacobian,hess=Hessian, options={'gtol': 1e-4, 'maxiter':300})
 et = time.time()
 
 
