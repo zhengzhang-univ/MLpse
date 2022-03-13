@@ -15,7 +15,7 @@ configfile = "/data/zzhang/sim1/bt_matrices/config.yaml"
 pipeline_info = Parameters_collection.from_config(configfile) 
 
 
-CV = Covariances(0,0.3,2,0,0.15,2,pipeline_info['dk_1thresh_fg_3thresh'])
+CV = Covariances(0,0.3,3,0,0.15,6,pipeline_info['dk_1thresh_fg_3thresh'])
 
 # Fetch KL-basis visibilities
 data_path ='/data/zzhang/draco_out/klmode_group_0.h5'
@@ -38,7 +38,7 @@ fdata.close()
 
 
 
-Scaling = False
+Scaling = True
 NewtonMethods = False
 Regularized = True
 
@@ -118,20 +118,22 @@ else:
 
 # Give first guess for optimisation:
 # N.zeros(test.dim)
- p0 = N.log(p_th)
+p0 = N.log(p_th)
 #p0 = p_th
-Opt_Method = 'CG'
+Opt_Method = 'BFGS'
 
 st = time.time()
 res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, tol=1e-3, options={'gtol': 1e-4, 'disp': True, 'maxiter':300, 'return_all':True}) # rex.x is the result.
 et = time.time()
 
-print("x values: {}".format(res.x))
+
+#print("x values: {}".format(res.x))
 
 
 if mpiutil.rank0:
     print("***** Time elapsed for the minimization: %f ***** \n" % (et - st))
     print("Succeed or not? {}\n".format(res.success))
+    print("x values: {}".format(res.x))
     print("{}\n".format(res.message))
     print("Number of iteration {}\n".format(res.nit))
 
@@ -148,8 +150,3 @@ if mpiutil.rank0:
         #f.create_dataset("status",data=res.status)
         f.create_dataset("fun",data=res.fun)
         f.create_dataset("jac",data=res.jac)
-        #f.create_dataset("allvecs",data=res.allvecs)
-        f.create_dataset("fun history",data=fun_history)
-        f.create_dataset("jac history",data=jac_history)
-        f.create_dataset("pvec f history",data=pvec_fun_history)
-        f.create_dataset("pvec j history",data=pvec_jac_history)
