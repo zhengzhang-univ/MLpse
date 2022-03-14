@@ -38,9 +38,9 @@ fdata.close()
 
 
 
-Scaling = True
-NewtonMethods = True
-Regularized = True
+Scaling = False
+NewtonMethods = False
+Regularized = False
 
 if NewtonMethods:
     test = Likelihood_with_J_H(vis, CV)
@@ -118,13 +118,13 @@ else:
 
 # Give first guess for optimisation:
 # N.zeros(test.dim)
-p0 = N.log(p_th)
+p0 = N.log(2*p_th)
 #p0 = p_th
-Opt_Method = 'Newton-CG'
+Opt_Method = 'BFGS'
 
 st = time.time()
-#res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, tol=1e-3, options={'gtol': 1e-4, 'disp': True, 'maxiter':300, 'return_all':True}) # rex.x is the result.
-res = minimize(log_likelihood, p0, method='trust-krylov', jac= Jacobian,hess=Hessian, options={'gtol': 1e-4, 'maxiter':300})
+res = minimize(log_likelihood, p0, method=Opt_Method, jac= Jacobian, tol=1e-3, options={'gtol': 1e-4, 'disp': True, 'maxiter':300, 'return_all':True}) # rex.x is the result.
+#res = minimize(log_likelihood, p0, method='trust-krylov', jac= Jacobian,hess=Hessian, options={'gtol': 1e-4, 'maxiter':300})
 et = time.time()
 
 
@@ -139,7 +139,7 @@ if mpiutil.rank0:
     print("Number of iteration {}\n".format(res.nit))
 
     Aux1, Aux2 = N.broadcast_arrays(CV.k_par_centers[:, N.newaxis], CV.k_perp_centers)
-    with h5py.File("MLPSE_"+Opt_Method+str(len(res.x))+".hdf5", "w") as f:
+    with h5py.File("MLPSE_N"+Opt_Method+str(len(res.x))+".hdf5", "w") as f:
         f.create_dataset("first guess", data=p0)
         f.create_dataset("theory", data=p_th)
         f.create_dataset("paramters", data=res.x)
