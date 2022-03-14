@@ -56,38 +56,45 @@ if Scaling:
     if not Regularized:
         def log_likelihood(xvec):
             # xvec should be N.array object.
-            #pvec = N.exp(xvec)*p_th
-            pvec = N.exp(xvec)
+            pvec = (N.exp(xvec) + N.exp(-xvec))*.5
             test(pvec)
             return test.fun    
         def Jacobian(xvec):
-            #pvec = N.exp(xvec)*p_th
-            pvec = N.exp(xvec)
+            #pvec = N.exp(xvec)
+            pvec = (N.exp(xvec) + N.exp(-xvec))*.5
+            derpvec = (N.exp(xvec) - N.exp(-xvec))*.5
             test(pvec)
-            result = test.jac*pvec
+            result = test.jac*derpvec
             return result
         if NewtonMethods:
             def Hessian(xvec):
-                pvec = N.exp(xvec)
+                #pvec = N.exp(xvec)
+                pvec = (N.exp(xvec) + N.exp(-xvec))*.5
+                derpvec = (N.exp(xvec) - N.exp(-xvec))*.5
                 test(pvec)
-                return N.diagflat(pvec**2)@test.hess
+                return N.diagflat(derpvec**2)@test.hess
     else:
         def log_likelihood(xvec):
-            pvec = N.exp(xvec)
+            #pvec = N.exp(xvec)
+            pvec = (N.exp(xvec) + N.exp(-xvec))*.5
             test(pvec)
             return test.fun + LA.norm(xvec)
         def Jacobian(xvec):
-            pvec = N.exp(xvec)
+            #pvec = N.exp(xvec)
+            pvec = (N.exp(xvec) + N.exp(-xvec))*.5
+            derpvec = (N.exp(xvec) - N.exp(-xvec))*.5
             test(pvec)
-            return test.jac*pvec + xvec/LA.norm(xvec)
+            return test.jac*derpvec + xvec/LA.norm(xvec)
         if NewtonMethods:
             def hess_of_norm(pvec):
                 norm = LA.norm(pvec)
                 return N.identity(len(pvec))/norm - N.outer(pvec,pvec)/(norm**3.)
             def Hessian(xvec):
-                pvec = N.exp(xvec)
+                #pvec = N.exp(xvec)
+                pvec = (N.exp(xvec) + N.exp(-xvec))*.5
+                derpvec = (N.exp(xvec) - N.exp(-xvec))*.5
                 test(pvec)
-                result = N.diagflat(pvec**2)@test.hess + hess_of_norm(xvec)
+                result = N.diagflat(derpvec**2)@test.hess + hess_of_norm(xvec)
                 return result
 elif not Regularized:
     def log_likelihood(pvec):
