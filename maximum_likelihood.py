@@ -38,9 +38,9 @@ fdata.close()
 
 
 
-Scaling = False
+Scaling = True
 NewtonMethods = False
-Regularized = False
+Regularized = True
 
 if NewtonMethods:
     test = Likelihood_with_J_H(vis, CV)
@@ -146,7 +146,7 @@ if mpiutil.rank0:
     print("Number of iteration {}\n".format(res.nit))
 
     Aux1, Aux2 = N.broadcast_arrays(CV.k_par_centers[:, N.newaxis], CV.k_perp_centers)
-    with h5py.File("MLPSE_N"+Opt_Method+str(len(res.x))+".hdf5", "w") as f:
+    with h5py.File("MLPSE_SandR"+Opt_Method+str(len(res.x))+".hdf5", "w") as f:
         f.create_dataset("first guess", data=p0)
         f.create_dataset("theory", data=p_th)
         f.create_dataset("paramters", data=res.x)
