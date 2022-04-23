@@ -15,7 +15,7 @@ kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim = 0,0.3,2,0,0.
 kltrans_name = 'dk_1thresh_fg_3thresh'
 Scaling = True
 Regularized = False
-outputname = "MLPSE_final_test"
+outputname = "MLPSE_final_test_2"
 
 
 # Fetch info about the telescope, SVD, KL filters, parameters of observation, etc.
@@ -40,25 +40,22 @@ if Scaling:
     if not Regularized:
         def log_likelihood(xvec):
             # xvec should be N.array object.
-            pvec = (N.exp(xvec) + N.exp(-xvec))*.5
+            pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1.
             test(pvec)
             return test.fun    
         def Jacobian(xvec):
-            #pvec = N.exp(xvec)
-            pvec = (N.exp(xvec) + N.exp(-xvec))*.5
+            pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1.
             derpvec = (N.exp(xvec) - N.exp(-xvec))*.5
             test(pvec)
             result = test.jac*derpvec
             return result
     else:
         def log_likelihood(xvec):
-            #pvec = N.exp(xvec)
-            pvec = (N.exp(xvec) + N.exp(-xvec))*.5
+            pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1
             test(pvec)
             return test.fun + LA.norm(xvec)
         def Jacobian(xvec):
-            #pvec = N.exp(xvec)
-            pvec = (N.exp(xvec) + N.exp(-xvec))*.5
+            pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1
             derpvec = (N.exp(xvec) - N.exp(-xvec))*.5
             test(pvec)
             return test.jac*derpvec + xvec/LA.norm(xvec)
@@ -86,7 +83,7 @@ et = time.time()
 
 if mpiutil.rank0:
     if Scaling:
-        result =(N.exp(res.x) + N.exp(-res.x))*.5
+        result =(N.exp(res.x) + N.exp(-res.x))*.5 - 1
     else:
         result = res.x
     print("***** Time elapsed for the minimization: %f ***** \n" % (et - st))
