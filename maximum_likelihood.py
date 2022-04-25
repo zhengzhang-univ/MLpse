@@ -14,7 +14,7 @@ data_path ='/data/zzhang/draco_out/klmode_group_0.h5'
 kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim = 0,0.3,2,0,0.15,2
 kltrans_name = 'dk_1thresh_fg_3thresh'
 Scaling = True
-Regularized = False
+Regularized = True
 outputname = "MLPSE_final_test_2"
 
 
@@ -91,14 +91,13 @@ if mpiutil.rank0:
     print("PS results: {}".format(result))
     print("{}\n".format(res.message))
     print("Number of iteration {}\n".format(res.nit))
-    Aux1, Aux2 = N.broadcast_arrays(CV.k_par_centers[:, N.newaxis], CV.k_perp_centers)
     with h5py.File(outputname+".hdf5", "w") as f:
         f.create_dataset("first guess", data=p0)
         f.create_dataset("theory", data=test.parameter_model_values)
         f.create_dataset("ps_result", data=result)
-        f.create_dataset("k_parallel", data=Aux1.flatten())
-        f.create_dataset("k_perp", data=Aux2.flatten())
-        f.create_dataset("k_centers", data=CV.k_centers)
+        f.create_dataset("k_parallel", data=test.CV.k_pars_used)
+        f.create_dataset("k_perp", data=test.CV.k_perps_used)
+        f.create_dataset("k", data=test.CV.k_centers_used)
         #f.create_dataset("Hess_at_solution", data=)
         #f.create_dataset("nfev",data=res.nfev)
         #f.create_dataset("njev",data=res.njev)

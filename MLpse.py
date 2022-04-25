@@ -22,6 +22,8 @@ class kspace_cartesian():
         
         Aux1, Aux2 = N.broadcast_arrays(self.k_par_centers[:, N.newaxis], self.k_perp_centers)
         Aux = (Aux1 ** 2 + Aux2 ** 2) ** 0.5 
+        self.k_pars = Aux1.flatten()
+        self.k_perps = Aux2.flatten()
         self.k_centers = Aux.flatten()
 
         
@@ -94,10 +96,16 @@ class Covariances(kspace_cartesian):
         aux_list = mpiutil.parallel_map(fun, list(range(self.alpha_dim)))
         
         self.para_ind_list=[]
+        self.k_pars_used = []
+        self.k_perps_used = []
+        self.k_centers_used = []
         Resp_mat_list=[]
         for i in range(self.alpha_dim):
             if not N.all(aux_list[i]==0):
                 self.para_ind_list.append(i)
+                self.k_pars_used.append(self.k_pars[i])
+                self.k_perps_used.append(self.k_perps[i])
+                self.k_centers_used.append(self.k_centers[i])
                 Resp_mat_list.append(aux_list[i])
         self.nonzero_alpha_dim=len(self.para_ind_list)
         return Resp_mat_list
