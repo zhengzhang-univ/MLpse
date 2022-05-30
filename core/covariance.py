@@ -79,17 +79,11 @@ class kspace_cartesian():
     
     
 class Covariances(kspace_cartesian):
-    
     def fetch_response_matrix_list_sky(self):
         npol = self.telescope.num_pol_sky
         ldim = self.telescope.lmax + 1
         nfreq = self.telescope.nfreq
-        self.resp_mat_shape = (npol,npol,ldim,nfreq,nfreq)
-        
-        def fun(i):
-            Q_alpha = N.zeros()
-            Q_alpha[0,0,:,:,:] = self.make_response_matrix_sky(i)
-            return Q_alpha
+        self.resp_mat_shape = (npol, npol, ldim, nfreq, nfreq)
 
         aux_list = mpiutil.parallel_map(self.make_response_matrix_sky, list(range(self.alpha_dim)))
         
@@ -135,7 +129,7 @@ class Covariances(kspace_cartesian):
         -------
         cv_fg  : N.ndarray[pol2, pol1, l, freq1, freq2]
         """
-        
+
         KLclass = self.kltrans
         
             # If not polarised then zero out the polarised components of the array
@@ -148,7 +142,7 @@ class Covariances(kspace_cartesian):
                         )
         else:
             cv_fg = skymodel.foreground_model(
-                    self.telescope.lmax, self.telescope.frequencies, npol, pol_frac=0.0
+                    self.telescope.lmax, self.telescope.frequencies, self.telescope.num_pol_sky, pol_frac=0.0
                 )
         return cv_fg
 
@@ -165,7 +159,7 @@ class Covariances(kspace_cartesian):
 
 
 
-    def make_noise_covariance_kl_m(self,mi,threshold=None):
+    def make_noise_covariance_kl_m(self, mi, threshold=None):
         """ Compute the noise covariances in the KL basis. The noise includes 
         both foregrounds and instrumental noise. This is for a single m-mode.
         Parameters
