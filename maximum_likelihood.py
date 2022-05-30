@@ -10,13 +10,13 @@ from numpy import linalg as LA
 import copy
 
 # Inputs:
-configfile = "/data/zzhang/sim1/bt_matrices/config.yaml" 
-data_path ='/data/zzhang/draco_out/klmode_group_0.h5'
-kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim = 0,0.3,2,0,0.15,2
-kltrans_name = 'dk_1thresh_fg_3thresh'
+configfile = "/data/zzhang/Viraj/drift_prod_hirax_survey_49elem_7point_64bands/config.yaml"
+data_path ='/data/zzhang/Viraj/draco_out/klmode_group_0.h5'
+kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim = 0,0.30,31,0,0.10,10
+kltrans_name = 'dk_5thresh_fg_1000thresh'
 Scaling = True
 Regularized = True
-outputname = "MLPSE_final_test_2"
+outputname = "MLPSE_Viraj_test"
 
 
 # Fetch info about the telescope, SVD, KL filters, parameters of observation, etc.
