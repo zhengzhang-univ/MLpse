@@ -1,7 +1,7 @@
 import numpy as N  
 import scipy.linalg
 import h5py
-from caput import config, mpiutil
+from core import mpiutil
     
 class Likelihood:
     def __init__(self, data_path, Covariance_class_obj, Threshold = None):

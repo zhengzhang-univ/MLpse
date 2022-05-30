@@ -1,7 +1,7 @@
 import numpy as N  
 from cora.signal import corr21cm
 from drift.core import skymodel
-from caput import config, mpiutil
+from core import mpiutil
 
 
 class kspace_cartesian():
