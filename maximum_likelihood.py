@@ -3,7 +3,7 @@ from core.covariance import *
 from core.likelihood import Likelihood_with_J_only
 from scipy.optimize import minimize
 import numpy as N
-from caput import mpiutil
+from core import mpiutil
 import time
 import h5py
 from numpy import linalg as LA
