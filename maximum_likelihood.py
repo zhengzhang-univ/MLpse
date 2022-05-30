@@ -26,8 +26,6 @@ CV = Covariances(kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_d
 
 test = Likelihood_with_J_only(data_path, CV)
 
-del CV, pipeline_info
-
 p_th =copy.deepcopy(test.parameter_model_values)
 p_th = N.array(p_th)
 p0 = p_th
