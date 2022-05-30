@@ -1,5 +1,6 @@
-from Fetch_info import Parameters_collection
-from MLpse import *
+from core.Fetch_info import Parameters_collection
+from core.covariance import *
+from core.likelihood import Likelihood_with_J_only
 from scipy.optimize import minimize
 import numpy as N
 from caput import mpiutil
@@ -20,18 +21,14 @@ outputname = "MLPSE_final_test_2"
 
 # Fetch info about the telescope, SVD, KL filters, parameters of observation, etc.
 # This gives a class object.
-pipeline_info = Parameters_collection.from_config(configfile) 
-CV = Covariances(kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim, pipeline_info[kltrans_name])
+pipeline_info = Parameters_collection.from_config(configfile)[kltrans_name]
+CV = Covariances(kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim, pipeline_info)
 
-# Fetch KL-basis visibilities
-fdata = h5py.File(data_path,'r')
-vis=fdata['vis'][...]
-fdata.close()
+test = Likelihood_with_J_only(data_path, CV)
 
+del CV, pipeline_info
 
-test = Likelihood_with_J_only(vis, CV)
-    
-p_th =copy.deepcopy( test.parameter_model_values)
+p_th =copy.deepcopy(test.parameter_model_values)
 p_th = N.array(p_th)
 p0 = p_th
 

@@ -5,15 +5,8 @@ from future.builtins.disabled import *  # noqa  pylint: disable=W0401, W0614
 # === End Python 2/3 compatibility
 
 import os.path
-import shutil
-import warnings
-import numpy as np
-
-from cora.signal import corr21cm
 
 import yaml
-
-from caput import mpiutil
 
 from drift.telescope import (
     cylinder,
