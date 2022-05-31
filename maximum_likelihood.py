@@ -26,6 +26,13 @@ CV = Covariance_parallel(kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end,
 
 test = Likelihood_with_J_only(data_path, CV)
 
+if mpiutil.rank0:
+    with h5py.File("response_matrices.hdf5",'w') as f:
+        f.create_dataset("k used", data=test.CV.k_centers_used)
+        f.create_dataset("k para used", data=test.CV.k_pars_used)
+        f.create_dataset("k perp used", data=test.CV.k_perps_used)
+        f.create_dataset("response matrices", data=test.mat_list)
+
 """
 p_th =copy.deepcopy(test.parameter_model_values)
 p_th = N.array(p_th)
