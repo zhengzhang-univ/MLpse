@@ -14,7 +14,7 @@ class Likelihood:
         self.local_ms = mpiutil.partition_list_mpi(self.nontrivial_mmode_list, method="alt",
                                                    comm=mpiutil._comm)
         fdata = h5py.File(data_path, 'r')
-        self.local_data_kl_m = [fdata['vis'][m] for m in self.local_ms]
+        self.local_data_kl_m = N.array([fdata['vis'][m] for m in self.local_ms])
         fdata.close()
         self.mmode_count = len(self.nontrivial_mmode_list)
         parameters = self.CV.make_binning_power()
