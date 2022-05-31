@@ -230,8 +230,8 @@ class Covariance_parallel(Covariances):
         mpiutil._comm.Allgather([N.array(local_k_pars_used), MPI.DOUBLE], [k_pars_used, MPI.DOUBLE])
         mpiutil._comm.Allgather([N.array(local_k_perps_used), MPI.DOUBLE], [k_perps_used, MPI.DOUBLE])
         mpiutil._comm.Allgather([N.array(local_k_centers_used), MPI.DOUBLE], [k_centers_used, MPI.DOUBLE])
-        mpiutil._comm.Allgather([N.array(local_Resp_mat_list), MPI.DOUBLE.Create_contiguous(2)],
-                                [Resp_mat_array,  MPI.DOUBLE.Create_contiguous(2)])
+        mpiutil._comm.Allgather([N.array(local_Resp_mat_list), MPI.DOUBLE],
+                                [Resp_mat_array,  MPI.DOUBLE])
         self.k_pars_used=k_pars_used
         self.k_perps_used=k_perps_used
         self.k_centers_used=k_centers_used
