@@ -109,9 +109,7 @@ class Covariances(kspace_cartesian):
             aux2 = (aux1 + aux1.conj().T)/2 # Make the quasi-Hermitian the exact Hermitian
             response_matrix_list_kl.append(aux2)
         return response_matrix_list_kl
-    
-   #make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
-        
+
     def make_covariance_kl_m(self, pvec, mi, response_mat_list_kl, threshold = None):
         
         cv_mat = self.make_noise_covariance_kl_m(mi, threshold)
@@ -251,3 +249,31 @@ class Covariance_parallel(Covariances):
         self.k_perps_used = k_perps_used
         self.k_centers_used = k_centers_used
         return Resp_mat_array
+
+class Covariance_from_file(Covariance_parallel):
+    def save_response_matrices_as(self, filepath):
+        result = self.fetch_response_matrix_list_sky()
+        self.response_sky_filepath = filepath
+        if mpiutil.rank0:
+            with h5py.File(filepath, "w") as f:
+                f.create_dataset("k used",data=self.k_centers_used)
+                f.create_dataset("k para used", data=self.k_pars_used)
+                f.create_dataset("k perp used", data=self.k_perps_used)
+                f.create_dataset("response matrices", data=result)
+
+    def __call__(self, response_sky_filepath):
+        f = h5py.File(response_sky_filepath, 'r')
+        self.k_centers_used = f['k used'][...]
+        self.k_pars_used = f['k para used'][...]
+        self.k_perps_used = f['k perp used'][...]
+        self.dataset = f['response matrices']
+
+    def make_response_matrix_kl_m_from_file(self, mi, threshold = None):
+        response_matrix_list_kl = []
+        for i in range(self.nonzero_alpha_dim):
+            mat = N.zeros(self.resp_mat_shape)
+            mat[0, 0, :, :, :] = self.dataset[i]
+            aux1 = self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
+            aux2 = (aux1 + aux1.conj().T)/2 # Make the quasi-Hermitian the exact Hermitian
+            response_matrix_list_kl.append(aux2)
+        return response_matrix_list_kl

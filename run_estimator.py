@@ -1,6 +1,6 @@
 from core.Fetch_info import Parameters_collection
 from core.covariance import *
-from core.likelihood import Likelihood_with_J_only
+from core.likelihood2 import Likelihood_with_J_only
 from scipy.optimize import minimize
 import numpy as N
 from core import mpiutil
@@ -17,13 +17,13 @@ kltrans_name = 'dk_5thresh_fg_1000thresh'
 Scaling = True
 Regularized = True
 outputname = "MLPSE_Viraj_test"
+Response_matrices_filename = "./ResponseMatrices.hdf5"
 
 
 # Fetch info about the telescope, SVD, KL filters, parameters of observation, etc.
-# This gives a class object.
 pipeline_info = Parameters_collection.from_config(configfile)
-CV = Covariance_parallel(kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim, pipeline_info[kltrans_name])
-
+CV = Covariance_from_file(kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim, pipeline_info[kltrans_name])
+CV(Response_matrices_filename)
 test = Likelihood_with_J_only(data_path, CV)
 
 del CV, pipeline_info
