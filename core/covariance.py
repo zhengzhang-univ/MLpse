@@ -238,6 +238,7 @@ class Covariance_from_file(Covariance_parallel):
         self.response_sky_filepath = filepath
         if mpiutil.rank0:
             with h5py.File(filepath, "w") as f:
+                f.create_dataset("Parameters indices", data=self.para_ind_list)
                 f.create_dataset("k used",data=self.k_centers_used)
                 f.create_dataset("k para used", data=self.k_pars_used)
                 f.create_dataset("k perp used", data=self.k_perps_used)
@@ -249,6 +250,7 @@ class Covariance_from_file(Covariance_parallel):
         nfreq = self.telescope.nfreq
         self.resp_mat_shape = (npol, npol, ldim, nfreq, nfreq)
         f = h5py.File(response_sky_filepath, 'r')
+        self.para_ind_list = f['Parameters indices'][...]
         self.k_centers_used = f['k used'][...]
         self.k_pars_used = f['k para used'][...]
         self.k_perps_used = f['k perp used'][...]

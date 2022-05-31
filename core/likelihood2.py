@@ -18,9 +18,7 @@ class Likelihood:
         self.local_Q_alpha_m = [self.CV.make_response_matrix_kl_m_from_file(mi, self.threshold) for mi in self.local_ms]
         self.mmode_count = len(self.nontrivial_mmode_list)
         parameters = self.CV.make_binning_power()
-        self.parameter_model_values = []
-        for i in self.CV.para_ind_list:
-            self.parameter_model_values.append(parameters[i])
+        self.parameter_model_values = [parameters[i] for i in self.CV.para_ind_list]
 
     def __call__(self, pvec):
         if self.pvec is pvec:
