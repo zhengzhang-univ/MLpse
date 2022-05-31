@@ -245,6 +245,7 @@ class Covariance_from_file(Covariance_parallel):
                 f.create_dataset("response matrices", data=result)
 
     def __call__(self, response_sky_filepath):
+        self.response_sky_filepath=response_sky_filepath
         npol = self.telescope.num_pol_sky
         ldim = self.telescope.lmax + 1
         nfreq = self.telescope.nfreq
@@ -254,14 +255,21 @@ class Covariance_from_file(Covariance_parallel):
         self.k_centers_used = f['k used'][...]
         self.k_pars_used = f['k para used'][...]
         self.k_perps_used = f['k perp used'][...]
-        self.dataset = f['response matrices']
         self.nonzero_alpha_dim = len(self.k_centers_used)
+        f.close()
+
+    def read_response_matrix(self, i):
+        f = h5py.File(self.response_sky_filepath, 'r')
+        result = f['response matrices'][i]
+        f.close()
+        return result
+
 
     def make_response_matrix_kl_m_from_file(self, mi, threshold = None):
         response_matrix_list_kl = []
         for i in range(self.nonzero_alpha_dim):
             mat = N.zeros(self.resp_mat_shape)
-            mat[0, 0, :, :, :] = self.dataset[i]
+            mat[0, 0, :, :, :] = self.read_response_matrix(i)
             aux1 = self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
             aux2 = (aux1 + aux1.conj().T)/2 # Make the quasi-Hermitian the exact Hermitian
             response_matrix_list_kl.append(aux2)
