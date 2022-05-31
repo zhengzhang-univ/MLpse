@@ -220,7 +220,7 @@ class Covariance_parallel(Covariances):
                 local_Resp_mat_list.append(aux_array)
         local_used_number = N.array(len(local_para_ind_list))
         all_used_numbers = N.empty(mpiutil.size)
-        mpiutil._comm.Allgather([local_used_number, MPI.DOUBLE], [all_used_numbers, MPI.DOUBLE])
+        mpiutil._comm.Allgather([local_used_number, MPI.INT], [all_used_numbers, MPI.INT])
         self.nonzero_alpha_dim = N.sum(all_used_numbers)
         k_pars_used = N.empty(self.nonzero_alpha_dim)
         k_perps_used = N.empty(self.nonzero_alpha_dim)
