@@ -26,6 +26,7 @@ CV = Covariance_parallel(kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end,
 
 test = Likelihood_with_J_only(data_path, CV)
 
+"""
 p_th =copy.deepcopy(test.parameter_model_values)
 p_th = N.array(p_th)
 p0 = p_th
@@ -99,3 +100,4 @@ if mpiutil.rank0:
         #f.create_dataset("status",data=res.status)
         #f.create_dataset("fun",data=res.fun)
         #f.create_dataset("jac",data=res.jac)
+"""
