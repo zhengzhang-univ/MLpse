@@ -3,12 +3,13 @@ import scipy.linalg
 import h5py
 from core import mpiutil
     
+
 class Likelihood:
     def __init__(self, data_path, Covariance_from_file, Threshold = None):
         self.pvec = None
         self.threshold = Threshold
         self.CV = Covariance_from_file
-        self.dim = self.CV.nonzero_alpha_dim
+        self.dim = len(self.CV.k_centers_used)
         self.nontrivial_mmode_list = self.filter_m_modes()
         self.local_ms = mpiutil.partition_list_mpi(self.nontrivial_mmode_list, method="alt",
                                                    comm=mpiutil._comm)

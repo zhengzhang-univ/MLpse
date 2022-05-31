@@ -241,9 +241,6 @@ class Covariance_parallel(Covariances):
                                  [k_centers_used, sendcounts, displacements, MPI.DOUBLE])
         mpiutil._comm.Allgatherv([N.array(local_Resp_mat_list).astype(float), MPI.DOUBLE],
                                  [Resp_mat_array, sendcounts*aux_scale, displacements*aux_scale, MPI.DOUBLE])
-        if mpiutil.rank0:
-            print("Indices of nontrivial parameters: {}".format(para_ind_list))
-            print("Response matrices look like: {}".format(Resp_mat_array))
         self.para_ind_list = para_ind_list
         self.k_pars_used = k_pars_used
         self.k_perps_used = k_perps_used
