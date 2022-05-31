@@ -219,27 +219,33 @@ class Covariance_parallel(Covariances):
                 local_k_centers_used.append(self.k_centers[i])
                 local_Resp_mat_list.append(aux_array)
         local_used_number = N.array(len(local_para_ind_list))
-        all_used_numbers = N.zeros(mpiutil.size, dtype=int)
-        mpiutil._comm.Allgather([local_used_number, MPI.INT], [all_used_numbers, MPI.INT])
-        self.nonzero_alpha_dim = N.sum(all_used_numbers)
+        sendcounts = N.zeros(mpiutil.size, dtype=int)
+        displacements = N.zeros(mpiutil.size, dtype=int)
+        mpiutil._comm.Allgather([local_used_number, MPI.INT], [sendcounts, MPI.INT])
+        self.nonzero_alpha_dim = N.sum(sendcounts)
+        displacements[1:]=N.cumsum(sendcounts)[:-1]
         k_pars_used = N.empty(self.nonzero_alpha_dim)
         k_perps_used = N.empty(self.nonzero_alpha_dim)
         k_centers_used = N.empty(self.nonzero_alpha_dim)
         para_ind_list = N.zeros(self.nonzero_alpha_dim,dtype=int)
         Resp_mat_array = N.empty((self.nonzero_alpha_dim, ldim, nfreq, nfreq))
         #aux_mpitype = MPI.DOUBLE.Create_contiguous(2)
-        mpiutil._comm.Allgather([N.array(local_para_ind_list), MPI.INT], [para_ind_list, MPI.INT])
-        mpiutil._comm.Allgather([N.array(local_k_pars_used), MPI.DOUBLE], [k_pars_used, MPI.DOUBLE])
-        mpiutil._comm.Allgather([N.array(local_k_perps_used), MPI.DOUBLE], [k_perps_used, MPI.DOUBLE])
-        mpiutil._comm.Allgather([N.array(local_k_centers_used), MPI.DOUBLE], [k_centers_used, MPI.DOUBLE])
-        mpiutil._comm.Allgather([N.array(local_Resp_mat_list), MPI.DOUBLE],
-                                [Resp_mat_array,  MPI.DOUBLE])
+        mpiutil._comm.Allgatherv([N.array(local_para_ind_list), MPI.INT],
+                                 [para_ind_list, sendcounts, displacements, MPI.INT])
+        mpiutil._comm.Allgatherv([N.array(local_k_pars_used), MPI.DOUBLE],
+                                 [k_pars_used, sendcounts, displacements, MPI.DOUBLE])
+        mpiutil._comm.Allgatherv([N.array(local_k_perps_used), MPI.DOUBLE],
+                                 [k_perps_used, sendcounts, displacements, MPI.DOUBLE])
+        mpiutil._comm.Allgatherv([N.array(local_k_centers_used), MPI.DOUBLE],
+                                 [k_centers_used, sendcounts, displacements, MPI.DOUBLE])
+        mpiutil._comm.Allgatherv([N.array(local_Resp_mat_list), MPI.DOUBLE],
+                                 [Resp_mat_array, sendcounts, displacements, MPI.DOUBLE])
         if mpiutil.rank0:
             print("Indices of nontrivial parameters: {}".format(para_ind_list))
             print("Response matrices look like: {}".format(Resp_mat_array))
         self.para_ind_list = para_ind_list
-        self.k_pars_used=k_pars_used
-        self.k_perps_used=k_perps_used
-        self.k_centers_used=k_centers_used
+        self.k_pars_used = k_pars_used
+        self.k_perps_used = k_perps_used
+        self.k_centers_used = k_centers_used
         return Resp_mat_array
 
