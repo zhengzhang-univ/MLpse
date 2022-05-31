@@ -11,8 +11,7 @@ class Likelihood:
         self.CV = Covariance_from_file
         self.dim = len(self.CV.k_centers_used)
         self.nontrivial_mmode_list = self.filter_m_modes()
-        self.local_ms = mpiutil.partition_list_mpi(self.nontrivial_mmode_list, method="alt",
-                                                   comm=mpiutil._comm)
+        self.local_ms = mpiutil.partition_list_mpi(self.nontrivial_mmode_list, method="alt")
         fdata = h5py.File(data_path, 'r')
         self.local_data_kl_m = N.array([fdata['vis'][m] for m in self.local_ms])
         fdata.close()
