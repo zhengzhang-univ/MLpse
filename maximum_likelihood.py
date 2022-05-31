@@ -26,6 +26,9 @@ CV = Covariance_parallel(kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end,
 
 test = Likelihood_with_J_only(data_path, CV)
 
+del CV, pipeline_info
+
+"""
 if mpiutil.rank0:
     with h5py.File("response_matrices.hdf5",'w') as f:
         f.create_dataset("k used", data=test.CV.k_centers_used)
@@ -107,4 +110,3 @@ if mpiutil.rank0:
         #f.create_dataset("status",data=res.status)
         #f.create_dataset("fun",data=res.fun)
         #f.create_dataset("jac",data=res.jac)
-"""
