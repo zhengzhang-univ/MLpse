@@ -264,6 +264,7 @@ class Covariance_from_file(Covariance_parallel):
         self.k_pars_used = f['k para used'][...]
         self.k_perps_used = f['k perp used'][...]
         self.dataset = f['response matrices']
+        self.nonzero_alpha_dim = len(self.k_centers_used)
 
     def make_response_matrix_kl_m_from_file(self, mi, threshold = None):
         response_matrix_list_kl = []
