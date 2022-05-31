@@ -91,7 +91,7 @@ class Covariances(kspace_cartesian):
         Resp_mat_list = []
         for i in range(self.alpha_dim):
             aux_array = self.make_response_matrix_sky(i)
-            if not N.allclose(aux_array, N.zeros(aux_array.shape)):  # Filter trivial bands
+            if not N.all(aux_array==0):  # Filter trivial bands
                 self.para_ind_list.append(i)
                 self.k_pars_used.append(self.k_pars[i])
                 self.k_perps_used.append(self.k_perps[i])
@@ -104,7 +104,7 @@ class Covariances(kspace_cartesian):
         response_matrix_list_kl = []
         for i in range(self.nonzero_alpha_dim):
             mat = N.zeros(self.resp_mat_shape)
-            mat[0,0,:,:,:] = response_matrix_list_sky[i]
+            mat[0, 0, :, :, :] = response_matrix_list_sky[i]
             aux1 = self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
             aux2 = (aux1 + aux1.conj().T)/2 # Make the quasi-Hermitian the exact Hermitian
             response_matrix_list_kl.append(aux2)
@@ -212,7 +212,7 @@ class Covariance_parallel(Covariances):
         local_Resp_mat_list = []
         for i in local_params:
             aux_array = self.make_response_matrix_sky(i)
-            if not N.allclose(aux_array, N.zeros(aux_array.shape)):
+            if not N.all(aux_array==0):
                 local_para_ind_list.append(i)
                 local_k_pars_used.append(self.k_pars[i])
                 local_k_perps_used.append(self.k_perps[i])
