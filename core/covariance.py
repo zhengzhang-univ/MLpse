@@ -203,6 +203,7 @@ class Covariance_parallel(Covariances):
         nfreq = self.telescope.nfreq
         self.resp_mat_shape = (npol, npol, ldim, nfreq, nfreq)
         # aux_list = mpiutil.parallel_map(self.make_response_matrix_sky, list(range(self.alpha_dim)))
+
         local_params = mpiutil.partition_list_mpi(list(range(self.alpha_dim)))
         local_para_ind_list = []
         local_k_pars_used = []
@@ -229,7 +230,8 @@ class Covariance_parallel(Covariances):
         k_perps_used = N.empty(self.nonzero_alpha_dim)
         k_centers_used = N.empty(self.nonzero_alpha_dim)
         para_ind_list = N.zeros(self.nonzero_alpha_dim, dtype=N.int32)
-        Resp_mat_array = list(N.zeros((self.nonzero_alpha_dim, ldim, nfreq, nfreq), dtype=float))
+        Resp_mat_array = N.zeros((self.nonzero_alpha_dim, ldim, nfreq, nfreq), dtype=float)
+        aux_scale = ldim * nfreq * nfreq
         #aux_mpitype = MPI.DOUBLE.Create_contiguous(2)
         mpiutil._comm.Allgatherv([N.array(local_para_ind_list).astype(N.int32), MPI.INT],
                                  [para_ind_list, sendcounts, displacements, MPI.INT])
@@ -239,8 +241,8 @@ class Covariance_parallel(Covariances):
                                  [k_perps_used, sendcounts, displacements, MPI.DOUBLE])
         mpiutil._comm.Allgatherv([N.array(local_k_centers_used).astype(float), MPI.DOUBLE],
                                  [k_centers_used, sendcounts, displacements, MPI.DOUBLE])
-        mpiutil._comm.Allgatherv([local_Resp_mat_list, MPI.DOUBLE],
-                                 [Resp_mat_array, sendcounts, displacements, MPI.DOUBLE])
+        mpiutil._comm.Allgatherv([N.array(local_Resp_mat_list).astype(float), MPI.DOUBLE],
+                                 [Resp_mat_array, sendcounts*aux_scale, displacements*aux_scale, MPI.DOUBLE])
         if mpiutil.rank0:
             print("Indices of nontrivial parameters: {}".format(para_ind_list))
             print("Response matrices look like: {}".format(Resp_mat_array))
