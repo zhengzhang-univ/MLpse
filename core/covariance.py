@@ -226,14 +226,14 @@ class Covariance_parallel(Covariances):
         k_perps_used = N.empty(self.nonzero_alpha_dim)
         k_centers_used = N.empty(self.nonzero_alpha_dim)
         Resp_mat_array = N.empty((self.nonzero_alpha_dim, ldim, nfreq, nfreq))
-        aux_mpitype = MPI.DOUBLE.Create_contiguous(2)
-        mpiutil._comm.Allgather([N.array(local_k_pars_used), MPI.DOUBLE.Create_contiguous(2)],
-                                [k_pars_used, MPI.DOUBLE.Create_contiguous(2)])
-        mpiutil._comm.Allgather([N.array(local_k_perps_used), aux_mpitype], [k_perps_used, aux_mpitype])
-        mpiutil._comm.Allgather([N.array(local_k_centers_used), aux_mpitype], [k_centers_used, aux_mpitype])
-        mpiutil._comm.Allgather([N.array(local_Resp_mat_list), aux_mpitype], [Resp_mat_array, aux_mpitype])
-        self.k_pars_used=k_pars_used.astype(float)
-        self.k_perps_used=k_perps_used.astype(float)
-        self.k_centers_used=k_centers_used.astype(float)
-        return Resp_mat_array.astype(float)
+        #aux_mpitype = MPI.DOUBLE.Create_contiguous(2)
+        mpiutil._comm.Allgather([N.array(local_k_pars_used), MPI.DOUBLE], [k_pars_used, MPI.DOUBLE])
+        mpiutil._comm.Allgather([N.array(local_k_perps_used), MPI.DOUBLE], [k_perps_used, MPI.DOUBLE])
+        mpiutil._comm.Allgather([N.array(local_k_centers_used), MPI.DOUBLE], [k_centers_used, MPI.DOUBLE])
+        mpiutil._comm.Allgather([N.array(local_Resp_mat_list), MPI.DOUBLE.Create_contiguous(2)],
+                                [Resp_mat_array,  MPI.DOUBLE.Create_contiguous(2)])
+        self.k_pars_used=k_pars_used
+        self.k_perps_used=k_perps_used
+        self.k_centers_used=k_centers_used
+        return Resp_mat_array
 
