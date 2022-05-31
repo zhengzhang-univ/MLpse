@@ -250,4 +250,3 @@ class Covariance_parallel(Covariances):
         self.k_perps_used = k_perps_used
         self.k_centers_used = k_centers_used
         return Resp_mat_array
-
