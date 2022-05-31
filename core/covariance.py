@@ -78,10 +78,6 @@ class kspace_cartesian:
     
 class Covariances(kspace_cartesian):
     def fetch_response_matrix_list_sky(self):
-        npol = self.telescope.num_pol_sky
-        ldim = self.telescope.lmax + 1
-        nfreq = self.telescope.nfreq
-        self.resp_mat_shape = (npol, npol, ldim, nfreq, nfreq)
         # aux_list = mpiutil.parallel_map(self.make_response_matrix_sky, list(range(self.alpha_dim)))
 
         self.para_ind_list = []
@@ -184,22 +180,11 @@ class Covariances(kspace_cartesian):
     #def generate_covariance(self, mi):
         
         #Q_alpha_list, CV = self.make_response_matrix_sky()
-        
-class Covariance_save_Q(Covariances):
-    def save_response_matrices(self, filepath):
-        result = self.fetch_response_matrix_list_sky()
-        with h5py.File(filepath + ".hdf5", "w") as f:
-            f.create_dataset("k used",data=self.k_centers_used)
-            f.create_dataset("k para used", data=self.k_pars_used)
-            f.create_dataset("k perp used", data=self.k_perps_used)
-            f.create_dataset("response matrices", data=result)
 
 class Covariance_parallel(Covariances):
     def fetch_response_matrix_list_sky(self):
-        npol = self.telescope.num_pol_sky
         ldim = self.telescope.lmax + 1
         nfreq = self.telescope.nfreq
-        self.resp_mat_shape = (npol, npol, ldim, nfreq, nfreq)
         # aux_list = mpiutil.parallel_map(self.make_response_matrix_sky, list(range(self.alpha_dim)))
 
         local_params = mpiutil.partition_list_mpi(list(range(self.alpha_dim)))
@@ -259,6 +244,10 @@ class Covariance_from_file(Covariance_parallel):
                 f.create_dataset("response matrices", data=result)
 
     def __call__(self, response_sky_filepath):
+        npol = self.telescope.num_pol_sky
+        ldim = self.telescope.lmax + 1
+        nfreq = self.telescope.nfreq
+        self.resp_mat_shape = (npol, npol, ldim, nfreq, nfreq)
         f = h5py.File(response_sky_filepath, 'r')
         self.k_centers_used = f['k used'][...]
         self.k_pars_used = f['k para used'][...]
