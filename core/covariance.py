@@ -91,7 +91,7 @@ class Covariances(kspace_cartesian):
         Resp_mat_list = []
         for i in range(self.alpha_dim):
             aux_array = self.make_response_matrix_sky(i)
-            if not N.all(aux_array == 0):  # Filter trivial bands
+            if not N.allclose(aux_array, N.zeros(aux_array.shape)):  # Filter trivial bands
                 self.para_ind_list.append(i)
                 self.k_pars_used.append(self.k_pars[i])
                 self.k_perps_used.append(self.k_perps[i])
@@ -219,7 +219,7 @@ class Covariance_parallel(Covariances):
                 local_k_centers_used.append(self.k_centers[i])
                 local_Resp_mat_list.append(aux_array)
         local_used_number = N.array(len(local_para_ind_list))
-        all_used_numbers = N.empty(mpiutil.size)
+        all_used_numbers = N.empty(mpiutil.size, dtype=int)
         mpiutil._comm.Allgather([local_used_number, MPI.INT], [all_used_numbers, MPI.INT])
         self.nonzero_alpha_dim = N.sum(all_used_numbers)
         k_pars_used = N.empty(self.nonzero_alpha_dim)
