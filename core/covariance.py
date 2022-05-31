@@ -225,13 +225,16 @@ class Covariance_parallel(Covariances):
         k_pars_used = N.empty(self.nonzero_alpha_dim)
         k_perps_used = N.empty(self.nonzero_alpha_dim)
         k_centers_used = N.empty(self.nonzero_alpha_dim)
+        para_ind_list = N.zeros(self.nonzero_alpha_dim,dtype=int)
         Resp_mat_array = N.empty((self.nonzero_alpha_dim, ldim, nfreq, nfreq))
         #aux_mpitype = MPI.DOUBLE.Create_contiguous(2)
+        mpiutil._comm.Allgather([N.array(local_para_ind_list), MPI.INT], [para_ind_list, MPI.INT])
         mpiutil._comm.Allgather([N.array(local_k_pars_used), MPI.DOUBLE], [k_pars_used, MPI.DOUBLE])
         mpiutil._comm.Allgather([N.array(local_k_perps_used), MPI.DOUBLE], [k_perps_used, MPI.DOUBLE])
         mpiutil._comm.Allgather([N.array(local_k_centers_used), MPI.DOUBLE], [k_centers_used, MPI.DOUBLE])
         mpiutil._comm.Allgather([N.array(local_Resp_mat_list), MPI.DOUBLE],
                                 [Resp_mat_array,  MPI.DOUBLE])
+        self.para_ind_list = para_ind_list
         self.k_pars_used=k_pars_used
         self.k_perps_used=k_perps_used
         self.k_centers_used=k_centers_used

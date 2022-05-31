@@ -113,8 +113,6 @@ class Likelihood_with_J_only(Likelihood):
         aux = (Identity - C_inv_D) @ C_inv
         pd = []
         for i in range(self.dim):
-            # pd.append(N.trace(C_inv @ Q_alpha[i] @ (1. - C_inv @ self.Dmat))) 
-            # N.einsum('ij,ji->', Q_alpha_list[i], aux)
             pd.append(N.trace(Q_alpha_list[i] @ aux))
         jac_mi = N.array(pd).reshape((self.dim,))
                 
