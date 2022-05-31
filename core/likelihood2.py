@@ -5,17 +5,18 @@ from core import mpiutil
     
 
 class Likelihood:
-    def __init__(self, data_path, Covariance_from_file, Threshold = None):
+    def __init__(self, data_path, covariance_from_file, threshold = None):
         self.pvec = None
-        self.threshold = Threshold
-        self.CV = Covariance_from_file
+        self.threshold = threshold
+        self.CV = covariance_from_file
         self.dim = self.CV.nonzero_alpha_dim
         self.nontrivial_mmode_list = self.filter_m_modes()
         self.local_ms = mpiutil.partition_list_mpi(self.nontrivial_mmode_list, method="alt")
         fdata = h5py.File(data_path, 'r')
         self.local_data_kl_m = N.array([fdata['vis'][m] for m in self.local_ms])
         fdata.close()
-        self.local_Q_alpha_m = [self.CV.make_response_matrix_kl_m_from_file(mi, self.threshold) for mi in self.local_ms]
+        self.local_Q_alpha_m = [self.CV.make_response_matrix_kl_m_from_file(mi, self.threshold)
+                                for mi in self.local_ms]
         self.mmode_count = len(self.nontrivial_mmode_list)
         parameters = self.CV.make_binning_power()
         self.parameter_model_values = [parameters[i] for i in self.CV.para_ind_list]
@@ -60,7 +61,7 @@ class Likelihood:
         fun_mi = N.linalg.slogdet(C)[1] + N.trace(C_inv_D)
 
         return fun_mi.real
-    
+"""    
     def calculate_Errors(self):
         fun = mpiutil.parallel_map(self.Fisher_m, self.nontrivial_mmode_list, method="alt")
         return scipy.linalg.inv(sum(list(fun)))
@@ -76,6 +77,7 @@ class Likelihood:
             for j in range(i, self.dim):
                 hess_mi[i, j] = hess_mi[j, i] = N.trace(C_inv @ Q_alpha_list[i] @ C_inv @ Q_alpha_list[j])
         return hess_mi.real
+"""
     
 class Likelihood_with_J_only(Likelihood):
     def __call__(self, pvec):
