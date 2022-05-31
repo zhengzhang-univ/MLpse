@@ -218,7 +218,7 @@ class Covariance_parallel(Covariances):
                 local_k_perps_used.append(self.k_perps[i])
                 local_k_centers_used.append(self.k_centers[i])
                 local_Resp_mat_list.append(aux_array)
-        local_size = N.array(len(local_para_ind_list))
+        local_size = N.array(len(local_para_ind_list)).astype(N.int32)
         sendcounts = N.zeros(mpiutil.size, dtype=N.int32)
         displacements = N.zeros(mpiutil.size, dtype=N.int32)
         mpiutil._comm.Allgather([local_size, MPI.INT], [sendcounts, MPI.INT])
