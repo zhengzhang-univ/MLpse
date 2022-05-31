@@ -236,7 +236,7 @@ class Covariance_parallel(Covariances):
                                 [Resp_mat_array,  MPI.DOUBLE])
         if mpiutil.rank0:
             print("Indices of nontrivial parameters: {}".format(para_ind_list))
-            print("Response matrices look like: {}".format(N.average(Resp_mat_array,axis=(1,2))))
+            print("Response matrices look like: {}".format(Resp_mat_array))
         self.para_ind_list = para_ind_list
         self.k_pars_used=k_pars_used
         self.k_perps_used=k_perps_used
