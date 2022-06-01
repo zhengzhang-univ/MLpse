@@ -236,7 +236,6 @@ class Covariance_saveKL(Covariances):
 
     def make_response_matrix(self):
         # aux_list = mpiutil.parallel_map(self.make_response_matrix_sky, list(range(self.alpha_dim)))
-
         local_params = mpiutil.partition_list_mpi(list(range(self.alpha_dim)))
         local_para_ind_list = []
         local_k_pars_used = []
