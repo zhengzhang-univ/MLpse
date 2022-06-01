@@ -6,23 +6,19 @@ import sys
     
 
 class Likelihood:
-    def __init__(self, data_path, covariance_from_file, threshold = None):
+    def __init__(self, data_path, covariance_class_obj, threshold = None):
         self.pvec = None
         self.threshold = threshold
-        self.CV = covariance_from_file
+        self.CV = covariance_class_obj
         self.dim = self.CV.nonzero_alpha_dim
-        self.nontrivial_mmode_list = self.filter_m_modes()
+        self.nontrivial_mmode_list = self.CV.nontrivial_mmode_list
         self.local_ms = mpiutil.partition_list_mpi(self.nontrivial_mmode_list, method="alt")
         fdata = h5py.File(data_path, 'r')
         self.local_data_kl_m = N.array([fdata['vis'][m] for m in self.local_ms])
         fdata.close()
-        self.local_Q_alpha_m = [self.CV.make_response_matrix_kl_m_from_file(mi, self.threshold)
-                                for mi in self.local_ms]
         self.mmode_count = len(self.nontrivial_mmode_list)
         parameters = self.CV.make_binning_power()
         self.parameter_model_values = [parameters[i] for i in self.CV.para_ind_list]
-        print("Size in memory, local_vis_kl={}".format(sys.getsizeof(self.local_data_kl_m)))
-        print("Size in memory, local_Q_alpha={}".format(sys.getsizeof(self.local_Q_alpha_m)))
 
     def __call__(self, pvec):
         if self.pvec is pvec:
@@ -47,7 +43,7 @@ class Likelihood:
     
     def make_funs_mi(self, mi):
         local_mindex = self.local_ms.index(mi)
-        Q_alpha_list = self.local_Q_alpha_m[local_mindex]
+        Q_alpha_list = self.load_Q_kl_list(mi)
         C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
         len = C.shape[0]
         vis_kl = self.local_data_kl_m[local_mindex, :len]
@@ -97,8 +93,7 @@ class Likelihood_with_J_only(Likelihood):
             self.jac = sum(list(jac))/self.mmode_count
     
     def make_funs_mi(self, mi):
-        local_mindex = self.local_ms.index(mi)
-        Q_alpha_list = self.local_Q_alpha_m[local_mindex]
+        Q_alpha_list = self.CV.load_Q_kl_list(mi)
         C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
         len = C.shape[0]
         Identity = N.identity(len)
@@ -138,7 +133,7 @@ class Likelihood_with_J_H(Likelihood):
             self.hess = sum(list(hess))/self.mmode_count
     
     def make_funs_mi(self, mi):
-        Q_alpha_list = self.CV.make_response_matrix_kl_m_from_file(mi, self.threshold)
+        Q_alpha_list = self.CV.load_Q_kl_list(mi)
         C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
         len = C.shape[0]
         Identity = N.identity(len)

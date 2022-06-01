@@ -180,10 +180,56 @@ class Covariances(kspace_cartesian):
         
         #Q_alpha_list, CV = self.make_response_matrix_sky()
 
-class Covariance_parallel(Covariances):
-    def fetch_response_matrix_list_sky(self):
+class Covariance_saveKL(Covariances):
+    def __call__(self, filepath):
+        npol = self.telescope.num_pol_sky
         ldim = self.telescope.lmax + 1
         nfreq = self.telescope.nfreq
+        self.resp_mat_shape = (npol, npol, ldim, nfreq, nfreq)
+        self.filter_m_modes() # Filter out trivial mmodes on KL basis
+        self.filesavepath = filepath
+        self.make_response_matrix()
+        del self.local_Resp_mat_list
+        mpiutil.barrier()
+
+    def load_Q_kl_list(self,mi):
+        return h5py.File(self.filesavepath,'r')[str(mi)][...]
+
+    def filter_m_modes(self):
+        self.nontrivial_mmode_list = []
+        for mi in range(self.telescope.mmax + 1):
+            if self.kltrans.modes_m(mi)[0] is None:
+                if mpiutil.rank0:
+                    print("The m={} mode is null.".format(mi))
+            else:
+                self.nontrivial_mmode_list.append(mi)
+        return
+
+    def project_Q_sky_to_kl(self, mi, qsky):
+        mat = N.zeros(self.resp_mat_shape)
+        mat[0, 0, :, :, :] = qsky
+        result = self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold=None)
+        return (result + result.conj().T)/2
+
+    def save_Q_kl_m(self,mi):
+        sendbuf = N.array([self.project_Q_sky_to_kl(mi, item)
+                                for item in self.local_Resp_mat_list]).astype(complex)
+        a, b=sendbuf.shape[1:]
+        assert a == b
+        root = 0
+        if mpiutil.rank == root:
+            #print("sendcounts: {}, total: {}".format(sendcounts, sum(sendcounts)))
+            recvbuf = N.zeros((self.nonzero_alpha_dim, a, b), dtype=complex)
+        else:
+            recvbuf = None
+        mpiutil._comm.Gatherv(sendbuf=sendbuf, recvbuf=(recvbuf, self.sendcounts*a*b, self.displacements*a*b), root=root)
+        if mpiutil.rank == root:
+            with h5py.File(self.filesavepath, "w") as f:
+                f.create_dataset("{}".format(mi), data=recvbuf)
+        mpiutil.barrier()
+        return
+
+    def make_response_matrix(self):
         # aux_list = mpiutil.parallel_map(self.make_response_matrix_sky, list(range(self.alpha_dim)))
 
         local_params = mpiutil.partition_list_mpi(list(range(self.alpha_dim)))
@@ -191,7 +237,7 @@ class Covariance_parallel(Covariances):
         local_k_pars_used = []
         local_k_perps_used = []
         local_k_centers_used = []
-        local_Resp_mat_list = []
+        self.local_Resp_mat_list = []
         for i in local_params:
             aux_array = self.make_response_matrix_sky(i)
             if not N.all(aux_array==0):
@@ -199,81 +245,42 @@ class Covariance_parallel(Covariances):
                 local_k_pars_used.append(self.k_pars[i])
                 local_k_perps_used.append(self.k_perps[i])
                 local_k_centers_used.append(self.k_centers[i])
-                local_Resp_mat_list.append(aux_array)
-        local_size = N.array(len(local_para_ind_list)).astype(N.int32)
-        sendcounts = N.zeros(mpiutil.size, dtype=N.int32)
-        displacements = N.zeros(mpiutil.size, dtype=N.int32)
-        mpiutil._comm.Allgather([local_size, MPI.INT], [sendcounts, MPI.INT])
+                self.local_Resp_mat_list.append(aux_array)
 
-        self.nonzero_alpha_dim = N.sum(sendcounts)
-        displacements[1:]=N.cumsum(sendcounts)[:-1]
+
+        local_size = N.array(len(local_para_ind_list)).astype(N.int32)
+        self.sendcounts = N.zeros(mpiutil.size, dtype=N.int32)
+        self.displacements = N.zeros(mpiutil.size, dtype=N.int32)
+        mpiutil._comm.Allgather([local_size, MPI.INT], [self.sendcounts, MPI.INT])
+        self.nonzero_alpha_dim = N.sum(self.sendcounts)
+        self.displacements[1:] = N.cumsum(self.sendcounts)[:-1]
+
+        for mi in self.nontrivial_mmode_list:
+            self.save_Q_kl_m(mi)
 
         k_pars_used = N.empty(self.nonzero_alpha_dim)
         k_perps_used = N.empty(self.nonzero_alpha_dim)
         k_centers_used = N.empty(self.nonzero_alpha_dim)
         para_ind_list = N.zeros(self.nonzero_alpha_dim, dtype=N.int32)
-        Resp_mat_array = N.zeros((self.nonzero_alpha_dim, ldim, nfreq, nfreq), dtype=float)
-        aux_scale = ldim * nfreq * nfreq
-        #aux_mpitype = MPI.DOUBLE.Create_contiguous(2)
+        # Resp_mat_array = N.zeros((self.nonzero_alpha_dim, ldim, nfreq, nfreq), dtype=float)
+        # aux_scale = ldim * nfreq * nfreq
+        # aux_mpitype = MPI.DOUBLE.Create_contiguous(2)
         mpiutil._comm.Allgatherv([N.array(local_para_ind_list).astype(N.int32), MPI.INT],
-                                 [para_ind_list, sendcounts, displacements, MPI.INT])
+                                 [para_ind_list, self.sendcounts, self.displacements, MPI.INT])
         mpiutil._comm.Allgatherv([N.array(local_k_pars_used).astype(float), MPI.DOUBLE],
-                                 [k_pars_used, sendcounts, displacements, MPI.DOUBLE])
+                                 [k_pars_used, self.sendcounts, self.displacements, MPI.DOUBLE])
         mpiutil._comm.Allgatherv([N.array(local_k_perps_used).astype(float), MPI.DOUBLE],
-                                 [k_perps_used, sendcounts, displacements, MPI.DOUBLE])
+                                 [k_perps_used, self.sendcounts, self.displacements, MPI.DOUBLE])
         mpiutil._comm.Allgatherv([N.array(local_k_centers_used).astype(float), MPI.DOUBLE],
-                                 [k_centers_used, sendcounts, displacements, MPI.DOUBLE])
-        mpiutil._comm.Allgatherv([N.array(local_Resp_mat_list).astype(float), MPI.DOUBLE],
-                                 [Resp_mat_array, sendcounts*aux_scale, displacements*aux_scale, MPI.DOUBLE])
+                                 [k_centers_used, self.sendcounts, self.displacements, MPI.DOUBLE])
+        # mpiutil._comm.Allgatherv([N.array(local_Resp_mat_list).astype(float), MPI.DOUBLE],
+        #                          [Resp_mat_array, sendcounts*aux_scale, displacements*aux_scale, MPI.DOUBLE])
         self.para_ind_list = para_ind_list
         self.k_pars_used = k_pars_used
         self.k_perps_used = k_perps_used
         self.k_centers_used = k_centers_used
-        return Resp_mat_array
+        return
 
-class Covariance_from_file(Covariance_parallel):
-    def save_sky_response_matrices_as(self, filepath):
-        result = self.fetch_response_matrix_list_sky()
-        self.response_sky_filepath = filepath
-        if mpiutil.rank0:
-            with h5py.File(filepath, "w") as f:
-                f.create_dataset("Parameters indices", data=self.para_ind_list)
-                f.create_dataset("k used",data=self.k_centers_used)
-                f.create_dataset("k para used", data=self.k_pars_used)
-                f.create_dataset("k perp used", data=self.k_perps_used)
-                f.create_dataset("response matrices", data=result)
-
-
-    def __call__(self, response_sky_filepath):
-        self.response_sky_filepath=response_sky_filepath
-        npol = self.telescope.num_pol_sky
-        ldim = self.telescope.lmax + 1
-        nfreq = self.telescope.nfreq
-        self.resp_mat_shape = (npol, npol, ldim, nfreq, nfreq)
-        f = h5py.File(response_sky_filepath, 'r')
-        self.para_ind_list = f['Parameters indices'][...]
-        self.k_centers_used = f['k used'][...]
-        self.k_pars_used = f['k para used'][...]
-        self.k_perps_used = f['k perp used'][...]
-        self.nonzero_alpha_dim = len(self.k_centers_used)
-        f.close()
-
-    def read_response_matrix(self, i):
-        f = h5py.File(self.response_sky_filepath, 'r')
-        result = f['response matrices'][i]
-        f.close()
-        return result
-
-
-    def make_response_matrix_kl_m_from_file(self, mi, threshold = None):
-        response_matrix_list_kl = []
-        for i in range(self.nonzero_alpha_dim):
-            mat = N.zeros(self.resp_mat_shape)
-            mat[0, 0, :, :, :] = self.read_response_matrix(i)
-            aux1 = self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
-            response_matrix_list_kl.append((aux1 + aux1.conj().T)/2 ) # Make the quasi-Hermitian the exact Hermitian
-            #response_matrix_list_kl.append(self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold))
-        return response_matrix_list_kl
 
 
 

@@ -1,5 +1,5 @@
 from core.Fetch_info import Parameters_collection
-from core.covariance import *
+from core.covariance2 import *
 from core.likelihood2 import Likelihood_with_J_only
 from scipy.optimize import minimize
 import numpy as N
@@ -8,7 +8,6 @@ import time
 import h5py
 from numpy import linalg as LA
 import copy
-import sys
 
 # Inputs:
 configfile = "/data/zzhang/Viraj/drift_prod_hirax_survey_49elem_7point_64bands/config.yaml"
@@ -16,34 +15,23 @@ data_path ='/data/zzhang/Viraj/draco_out/klmode_group_0.h5'
 kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim = 0, 0.30, 31, 0, 0.10, 10
 kltrans_name = 'dk_5thresh_fg_1000thresh'
 Scaling = True
-Regularized = False
+Regularized = True
 outputname = "MLPSE_Viraj_test"
-Response_matrices_filename = "./ResponseMatrices.hdf5"
+Response_matrices_filename = "./ResponseMatricesKL.hdf5"
 
 
 # Fetch info about the telescope, SVD, KL filters, parameters of observation, etc.
 pipeline_info = Parameters_collection.from_config(configfile)
-CV = Covariance_from_file(kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim, pipeline_info[kltrans_name])
+CV = Covariance_saveKL(kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim, pipeline_info[kltrans_name])
 CV(Response_matrices_filename)
+
 test = Likelihood_with_J_only(data_path, CV)
 del CV, pipeline_info
 
-"""
-if mpiutil.rank0:
-    with h5py.File("response_matrices.hdf5",'w') as f:
-        f.create_dataset("k used", data=test.CV.k_centers_used)
-        f.create_dataset("k para used", data=test.CV.k_pars_used)
-        f.create_dataset("k perp used", data=test.CV.k_perps_used)
-        f.create_dataset("response matrices", data=test.mat_list)
-
-"""
 p_th =copy.deepcopy(test.parameter_model_values)
 p_th = N.array(p_th)
 p0 = p_th
 
-print("Size in memory, Likelihood class object={}".format(sys.getsizeof(test)))
-
-"""
 if Scaling:
     p0 = N.log(2*p_th)
     if not Regularized:
@@ -113,4 +101,3 @@ if mpiutil.rank0:
         #f.create_dataset("status",data=res.status)
         #f.create_dataset("fun",data=res.fun)
         #f.create_dataset("jac",data=res.jac)
-"""
