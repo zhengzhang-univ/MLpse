@@ -31,9 +31,9 @@ class Likelihood:
             # Unpack into separate lists of the log-likelihood function, jacobian, and hessian
             return sum(list(fun))/self.mmode_count
             
-    def filter_m_modes(self):
+    def filter_m_modes_2(self):
         m_list = []
-        for mi in range(self.CV.telescope.mmax + 1):
+        for mi in self.CV.nontrivial_mmode_list:
             if self.CV.kltrans.modes_m(mi)[0] is None:
                 if mpiutil.rank0:
                     print("The m={} mode is null.".format(mi))

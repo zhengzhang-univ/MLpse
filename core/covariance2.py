@@ -196,13 +196,13 @@ class Covariance_saveKL(Covariances):
         return h5py.File(self.filesavepath,'r')[str(mi)][...]
 
     def filter_m_modes(self):
-        self.nontrivial_mmode_list = []
+        self.nontrivial_mmode_first_filter = []
         for mi in range(self.telescope.mmax + 1):
             if self.kltrans.modes_m(mi)[0] is None:
                 if mpiutil.rank0:
                     print("The m={} mode is null.".format(mi))
             else:
-                self.nontrivial_mmode_list.append(mi)
+                self.nontrivial_mmode_first_filter.append(mi)
         return
 
     def project_Q_sky_to_kl(self, mi, qsky):
@@ -229,8 +229,10 @@ class Covariance_saveKL(Covariances):
                               root=root)
 
         if mpiutil.rank == root:
-            with h5py.File(self.filesavepath, "w") as f:
-                f.create_dataset("{}".format(mi), data=recvbuf)
+            if not N.all(recvbuf==0):
+                with h5py.File(self.filesavepath, "w") as f:
+                    f.create_dataset("{}".format(mi), data=recvbuf)
+                self.nontrivial_mmode_list.append(mi)
         mpiutil.barrier()
         return
 
@@ -259,7 +261,8 @@ class Covariance_saveKL(Covariances):
         self.nonzero_alpha_dim = N.sum(self.sendcounts)
         self.displacements[1:] = N.cumsum(self.sendcounts)[:-1]
 
-        for mi in self.nontrivial_mmode_list:
+        self.nontrivial_mmode_list = []
+        for mi in self.nontrivial_mmode_first_filter:
             self.save_Q_kl_m(mi)
 
         k_pars_used = N.empty(self.nonzero_alpha_dim)
