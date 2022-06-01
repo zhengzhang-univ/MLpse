@@ -222,7 +222,7 @@ class Covariance_saveKL(Covariances):
             recvbuf = N.zeros((self.nonzero_alpha_dim, a, b), dtype=complex)
         else:
             recvbuf = None
-        large_dtype = MPI.COMPLEX.Create_contiguous(a*b).Commit()
+        large_dtype = MPI.COMPLEX32.Create_contiguous(a*b).Commit()
         mpiutil._comm.Gatherv([sendbuf,large_dtype],
                               [recvbuf, self.sendcounts*a*b, self.displacements*a*b, large_dtype],
                               root=root)
