@@ -215,20 +215,19 @@ class Covariance_saveKL(Covariances):
         sendbuf = N.array([self.project_Q_sky_to_kl(mi, item)
                                 for item in self.local_Resp_mat_list]).astype(complex)
         a, b=sendbuf.shape[1:]
-        assert a == b
+        print("a={}, and b={}.".format(a,b))
         root = 0
         if mpiutil.rank == root:
             # print("sendcounts: {}, total: {}".format(sendcounts, sum(sendcounts)))
             recvbuf = N.zeros((self.nonzero_alpha_dim, a, b), dtype=complex)
         else:
             recvbuf = None
-        # large_dtype = MPI.COMPLEX32.Create_contiguous(a*b).Commit()
-        # mpiutil._comm.Gatherv([sendbuf, MPI.COMPLEX32],
-        #                       [recvbuf, self.sendcounts*a*b, self.displacements*a*b, MPI.COMPLEX32],
-        #                       root=root)
+
+        # large_dtype = MPI.COMPLEX16.Create_contiguous(a*b).Commit()
         mpiutil._comm.Gatherv(sendbuf,
-                              recvbuf,
+                              [recvbuf, self.sendcounts*a*b, self.displacements*a*b, MPI.COMPLEX16],
                               root=root)
+
         if mpiutil.rank == root:
             with h5py.File(self.filesavepath, "w") as f:
                 f.create_dataset("{}".format(mi), data=recvbuf)
