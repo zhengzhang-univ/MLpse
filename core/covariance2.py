@@ -223,8 +223,8 @@ class Covariance_saveKL(Covariances):
         else:
             recvbuf = None
         large_dtype = MPI.COMPLEX32.Create_contiguous(a*b).Commit()
-        mpiutil._comm.Gatherv([sendbuf,large_dtype],
-                              [recvbuf, self.sendcounts*a*b, self.displacements*a*b, large_dtype],
+        mpiutil._comm.Gatherv(sendbuf,
+                              [recvbuf, self.sendcounts*a*b, self.displacements*a*b],
                               root=root)
         if mpiutil.rank == root:
             with h5py.File(self.filesavepath, "w") as f:
