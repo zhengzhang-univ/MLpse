@@ -2,6 +2,7 @@ import numpy as N
 import scipy.linalg
 import h5py
 from core import mpiutil
+import sys
     
 
 class Likelihood:
@@ -20,6 +21,8 @@ class Likelihood:
         self.mmode_count = len(self.nontrivial_mmode_list)
         parameters = self.CV.make_binning_power()
         self.parameter_model_values = [parameters[i] for i in self.CV.para_ind_list]
+        print("Size in memory, local_vis_kl={}".format(sys.getsizeof(self.local_data_kl_m)))
+        print("Size in memory, local_Q_alpha={}".format(sys.getsizeof(self.local_Q_alpha_m)))
 
     def __call__(self, pvec):
         if self.pvec is pvec:
@@ -102,21 +105,19 @@ class Likelihood_with_J_only(Likelihood):
         local_mindex = self.local_ms.index(mi)
         vis_kl = self.local_data_kl_m[local_mindex, :len]
         v_column = N.matrix(vis_kl.reshape((-1, 1)))
-        Dmat = v_column @ v_column.H
-        
+        del vis_kl, len
         C_inv = scipy.linalg.inv(C)
         C_inv = (C_inv + C_inv.conj().T)/2
-        C_inv_D = C_inv @ Dmat
-        
+        C_inv_D = C_inv @ v_column @ v_column.H
+        del v_column
         # compute m-mode log-likelihood
         fun_mi = N.linalg.slogdet(C)[1] + N.trace(C_inv_D)
         
         # compute m-mode Jacobian
         aux = (Identity - C_inv_D) @ C_inv
-        pd = []
-        for i in range(self.dim):
-            pd.append(N.trace(Q_alpha_list[i] @ aux))
-        jac_mi = N.array(pd).reshape((self.dim,))
+
+        jac_mi = N.array([N.trace(Q_alpha_list[i] @ aux)
+                          for i in range(self.dim)]).reshape((self.dim,))
                 
         return fun_mi.real, jac_mi.real
     

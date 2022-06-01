@@ -107,9 +107,8 @@ class Covariances(kspace_cartesian):
         return response_matrix_list_kl
 
     def make_covariance_kl_m(self, pvec, mi, response_mat_list_kl, threshold = None):
-        
         cv_mat = self.make_noise_covariance_kl_m(mi, threshold)
-        assert len(pvec)==self.nonzero_alpha_dim
+        # assert len(pvec)==self.nonzero_alpha_dim
         for i in range(self.nonzero_alpha_dim):
             cv_mat += pvec[i]*response_mat_list_kl[i]
         return cv_mat
@@ -271,6 +270,6 @@ class Covariance_from_file(Covariance_parallel):
             mat = N.zeros(self.resp_mat_shape)
             mat[0, 0, :, :, :] = self.read_response_matrix(i)
             aux1 = self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold)
-            aux2 = (aux1 + aux1.conj().T)/2 # Make the quasi-Hermitian the exact Hermitian
-            response_matrix_list_kl.append(aux2)
+            response_matrix_list_kl.append((aux1 + aux1.conj().T)/2 ) # Make the quasi-Hermitian the exact Hermitian
+            #response_matrix_list_kl.append(self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold))
         return response_matrix_list_kl
