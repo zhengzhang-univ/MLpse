@@ -79,7 +79,6 @@ class kspace_cartesian:
 class Covariances(kspace_cartesian):
     def fetch_response_matrix_list_sky(self):
         # aux_list = mpiutil.parallel_map(self.make_response_matrix_sky, list(range(self.alpha_dim)))
-
         self.para_ind_list = []
         self.k_pars_used = []
         self.k_perps_used = []
@@ -211,7 +210,7 @@ class Covariance_saveKL(Covariances):
         result = self.kltrans.project_matrix_sky_to_kl(mi, mat, threshold=None)
         return (result + result.conj().T)/2
 
-    def save_Q_kl_m(self,mi):
+    def save_Q_kl_m_old(self,mi):
         sendbuf = N.array([self.project_Q_sky_to_kl(mi, item)
                                 for item in self.local_Resp_mat_list]).astype(complex)
         a, b=sendbuf.shape[1:]
@@ -229,6 +228,23 @@ class Covariance_saveKL(Covariances):
                               root=root)
 
         if mpiutil.rank == root:
+            if not N.all(recvbuf==0):
+                with h5py.File(self.filesavepath, "w") as f:
+                    f.create_dataset("{}".format(mi), data=recvbuf)
+                self.nontrivial_mmode_list.append(mi)
+        mpiutil.barrier()
+        return
+
+    def save_Q_kl_m(self,mi):
+        sendbuf = N.array([self.project_Q_sky_to_kl(mi, item)
+                                for item in self.local_Resp_mat_list]).astype(complex)
+        a, b=sendbuf.shape[1:]
+        print("a={}, and b={}.".format(a,b))
+        recvbuf = N.zeros((self.nonzero_alpha_dim, a, b), dtype=complex)
+        # large_dtype = MPI.COMPLEX16.Create_contiguous(a*b).Commit()
+        mpiutil._comm.Allgatherv(sendbuf,
+                                 [recvbuf, self.sendcounts*a*b, self.displacements*a*b, MPI.COMPLEX16])
+        if mpiutil.rank0:
             if not N.all(recvbuf==0):
                 with h5py.File(self.filesavepath, "w") as f:
                     f.create_dataset("{}".format(mi), data=recvbuf)
@@ -287,7 +303,3 @@ class Covariance_saveKL(Covariances):
         self.k_perps_used = k_perps_used
         self.k_centers_used = k_centers_used
         return
-
-
-
-
