@@ -187,14 +187,8 @@ class Covariance_saveKL(Covariances):
         self.resp_mat_shape = (npol, npol, ldim, nfreq, nfreq)
         self.filter_m_modes() # Filter out trivial mmodes on KL basis
         self.filesavepath = filepath
-        self.make_response_matrix()
+        #self.make_response_matrix()
         mpiutil.barrier()
-
-    def project_matrix_sky_to_kl(self, mi, mat, threshold=None):
-        mproj = self.beamtransfer.project_matrix_sky_to_svd(mi, mat, temponly=True)
-
-    # def load_Q_kl_list(self,mi):
-    #     return h5py.File(self.filesavepath,'r')[str(mi)][...]
 
     def load_Q_kl_list(self,mi):
         return [self.load_Q_kl_mi_param(mi, p) for p in self.para_ind_list]
@@ -203,13 +197,13 @@ class Covariance_saveKL(Covariances):
         return h5py.File(self.filesavepath + str(param_ind) + ".hdf5",'r')[str(mi)][...]
 
     def filter_m_modes(self):
-        self.nontrivial_mmode_first_filter = []
+        self.nontrivial_mmode_list = []
         for mi in range(self.telescope.mmax + 1):
             if self.kltrans.modes_m(mi)[0] is None:
                 if mpiutil.rank0:
                     print("The m={} mode is null.".format(mi))
             else:
-                self.nontrivial_mmode_first_filter.append(mi)
+                self.nontrivial_mmode_list.append(mi)
         return
 
     def project_Q_sky_to_kl(self, mi, qsky):
@@ -245,7 +239,7 @@ class Covariance_saveKL(Covariances):
 
         for i in range(local_size):
             f = h5py.File(self.filesavepath + str(local_params[i])+'.hdf5', 'w')
-            for mi in self.nontrivial_mmode_first_filter:
+            for mi in self.nontrivial_mmode_list:
                 if mpiutil.rank0:
                     print(mi)
                 f.create_dataset(str(mi), data=self.project_Q_sky_to_kl(mi, local_Resp_mat_list[i]))
