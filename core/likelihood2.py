@@ -43,7 +43,7 @@ class Likelihood:
     
     def make_funs_mi(self, mi):
         local_mindex = self.local_ms.index(mi)
-        Q_alpha_list = self.load_Q_kl_list(mi)
+        Q_alpha_list = self.CV.load_Q_kl_list(mi)
         C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
         len = C.shape[0]
         vis_kl = self.local_data_kl_m[local_mindex, :len]

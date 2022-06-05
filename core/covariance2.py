@@ -191,8 +191,14 @@ class Covariance_saveKL(Covariances):
         del self.local_Resp_mat_list
         mpiutil.barrier()
 
-    def load_Q_kl_list(self,mi):
+    def load_Q_kl_list_0(self,mi):
         return h5py.File(self.filesavepath,'r')[str(mi)][...]
+
+    def load_Q_kl_list(self,mi):
+        return [self.load_Q_kl_mi_param(mi, p) for p in self.para_ind_list]
+
+    def load_Q_kl_mi_param(self,mi,param_ind):
+        return h5py.File(self.filesavepath,'r')[str(mi)+'/'+str(param_ind)][...]
 
     def filter_m_modes(self):
         self.nontrivial_mmode_first_filter = []
@@ -235,11 +241,10 @@ class Covariance_saveKL(Covariances):
         mpiutil.barrier()
         return
 
-    def save_Q_kl_m(self,mi):
+    def save_Q_kl_m_0(self,mi):
         sendbuf = N.array([self.project_Q_sky_to_kl(mi, item)
                                 for item in self.local_Resp_mat_list]).astype(complex)
         a, b=sendbuf.shape[-2:]
-        print("a={}, and b={}.".format(a,b))
         recvbuf = N.zeros((self.nonzero_alpha_dim, a, b), dtype=complex)
         # large_dtype = MPI.COMPLEX16.Create_contiguous(a*b).Commit()
         mpiutil._comm.Allgatherv(sendbuf,
@@ -252,10 +257,23 @@ class Covariance_saveKL(Covariances):
         mpiutil.barrier()
         return
 
+    def save_Q_kl_m(self,mi):
+        print("Saving Q KL {}".format(mi))
+        result = N.array([self.project_Q_sky_to_kl(mi, item)
+                          for item in self.local_Resp_mat_list]).astype(complex)
+        for r in range(mpiutil.size):
+            if r == mpiutil.rank:
+                f = h5py.File('mydataset.hdf5', 'a')
+                for j in self.local_para_ind_list:
+                    f.create_dataset(str(mi)+'/'+str(j), data=result[j])
+                f.close()
+        mpiutil.barrier()
+        return
+
     def make_response_matrix(self):
         # aux_list = mpiutil.parallel_map(self.make_response_matrix_sky, list(range(self.alpha_dim)))
         local_params = mpiutil.partition_list_mpi(list(range(self.alpha_dim)))
-        local_para_ind_list = []
+        self.local_para_ind_list = []
         local_k_pars_used = []
         local_k_perps_used = []
         local_k_centers_used = []
@@ -263,14 +281,14 @@ class Covariance_saveKL(Covariances):
         for i in local_params:
             aux_array = self.make_response_matrix_sky(i)
             if not N.all(aux_array==0):
-                local_para_ind_list.append(i)
+                self.local_para_ind_list.append(i)
                 local_k_pars_used.append(self.k_pars[i])
                 local_k_perps_used.append(self.k_perps[i])
                 local_k_centers_used.append(self.k_centers[i])
                 self.local_Resp_mat_list.append(aux_array)
 
 
-        local_size = N.array(len(local_para_ind_list)).astype(N.int32)
+        local_size = N.array(len(self.local_para_ind_list)).astype(N.int32)
         self.sendcounts = N.zeros(mpiutil.size, dtype=N.int32)
         self.displacements = N.zeros(mpiutil.size, dtype=N.int32)
         mpiutil._comm.Allgather([local_size, MPI.INT], [self.sendcounts, MPI.INT])
@@ -288,7 +306,7 @@ class Covariance_saveKL(Covariances):
         # Resp_mat_array = N.zeros((self.nonzero_alpha_dim, ldim, nfreq, nfreq), dtype=float)
         # aux_scale = ldim * nfreq * nfreq
         # aux_mpitype = MPI.DOUBLE.Create_contiguous(2)
-        mpiutil._comm.Allgatherv([N.array(local_para_ind_list).astype(N.int32), MPI.INT],
+        mpiutil._comm.Allgatherv([N.array(self.local_para_ind_list).astype(N.int32), MPI.INT],
                                  [para_ind_list, self.sendcounts, self.displacements, MPI.INT])
         mpiutil._comm.Allgatherv([N.array(local_k_pars_used).astype(float), MPI.DOUBLE],
                                  [k_pars_used, self.sendcounts, self.displacements, MPI.DOUBLE])
