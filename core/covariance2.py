@@ -238,7 +238,7 @@ class Covariance_saveKL(Covariances):
     def save_Q_kl_m(self,mi):
         sendbuf = N.array([self.project_Q_sky_to_kl(mi, item)
                                 for item in self.local_Resp_mat_list]).astype(complex)
-        a, b=sendbuf.shape[1:]
+        a, b=sendbuf.shape[-2:]
         print("a={}, and b={}.".format(a,b))
         recvbuf = N.zeros((self.nonzero_alpha_dim, a, b), dtype=complex)
         # large_dtype = MPI.COMPLEX16.Create_contiguous(a*b).Commit()
