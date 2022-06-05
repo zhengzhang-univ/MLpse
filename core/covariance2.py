@@ -198,7 +198,7 @@ class Covariance_saveKL(Covariances):
         return [self.load_Q_kl_mi_param(mi, p) for p in self.para_ind_list]
 
     def load_Q_kl_mi_param(self,mi,param_ind):
-        return h5py.File(self.filesavepath,'r')[str(mi)+'/'+str(param_ind)][...]
+        return h5py.File(self.filesavepath + str(param_ind) + ".hdf5",'r')[str(mi)][...]
 
     def filter_m_modes(self):
         self.nontrivial_mmode_first_filter = []
@@ -241,7 +241,7 @@ class Covariance_saveKL(Covariances):
         mpiutil.barrier()
         return
 
-    def save_Q_kl_m_0(self,mi):
+    def save_Q_kl_m(self,mi):
         sendbuf = N.array([self.project_Q_sky_to_kl(mi, item)
                                 for item in self.local_Resp_mat_list]).astype(complex)
         a, b=sendbuf.shape[-2:]
@@ -258,7 +258,7 @@ class Covariance_saveKL(Covariances):
         return
 
 
-    def make_response_matrix(self):
+    def make_response_matrix_0(self):
         # aux_list = mpiutil.parallel_map(self.make_response_matrix_sky, list(range(self.alpha_dim)))
         local_params = mpiutil.partition_list_mpi(list(range(self.alpha_dim)))
         self.local_para_ind_list = []
@@ -274,7 +274,6 @@ class Covariance_saveKL(Covariances):
                 local_k_perps_used.append(self.k_perps[i])
                 local_k_centers_used.append(self.k_centers[i])
                 self.local_Resp_mat_list.append(aux_array)
-
 
         local_size = N.array(len(self.local_para_ind_list)).astype(N.int32)
         self.sendcounts = N.zeros(mpiutil.size, dtype=N.int32)
@@ -298,6 +297,63 @@ class Covariance_saveKL(Covariances):
                                          data=result[j])
                     f.close()
             mpiutil.barrier()
+
+        k_pars_used = N.empty(self.nonzero_alpha_dim)
+        k_perps_used = N.empty(self.nonzero_alpha_dim)
+        k_centers_used = N.empty(self.nonzero_alpha_dim)
+        para_ind_list = N.zeros(self.nonzero_alpha_dim, dtype=N.int32)
+        # Resp_mat_array = N.zeros((self.nonzero_alpha_dim, ldim, nfreq, nfreq), dtype=float)
+        # aux_scale = ldim * nfreq * nfreq
+        # aux_mpitype = MPI.DOUBLE.Create_contiguous(2)
+        mpiutil._comm.Allgatherv([N.array(self.local_para_ind_list).astype(N.int32), MPI.INT],
+                                 [para_ind_list, self.sendcounts, self.displacements, MPI.INT])
+        mpiutil._comm.Allgatherv([N.array(local_k_pars_used).astype(float), MPI.DOUBLE],
+                                 [k_pars_used, self.sendcounts, self.displacements, MPI.DOUBLE])
+        mpiutil._comm.Allgatherv([N.array(local_k_perps_used).astype(float), MPI.DOUBLE],
+                                 [k_perps_used, self.sendcounts, self.displacements, MPI.DOUBLE])
+        mpiutil._comm.Allgatherv([N.array(local_k_centers_used).astype(float), MPI.DOUBLE],
+                                 [k_centers_used, self.sendcounts, self.displacements, MPI.DOUBLE])
+        # mpiutil._comm.Allgatherv([N.array(local_Resp_mat_list).astype(float), MPI.DOUBLE],
+        #                          [Resp_mat_array, sendcounts*aux_scale, displacements*aux_scale, MPI.DOUBLE])
+        self.para_ind_list = para_ind_list
+        self.k_pars_used = k_pars_used
+        self.k_perps_used = k_perps_used
+        self.k_centers_used = k_centers_used
+        return
+
+
+
+    def make_response_matrix(self):
+        local_params = []
+        #self.local_para_ind_list = []
+        local_k_pars_used = []
+        local_k_perps_used = []
+        local_k_centers_used = []
+        local_Resp_mat_list = []
+        for i in mpiutil.partition_list_mpi(list(range(self.alpha_dim))):
+            aux_array = self.make_response_matrix_sky(i)
+            if not N.all(aux_array==0):
+                #self.local_para_ind_list.append(i)
+                local_params.append(i)
+                local_k_pars_used.append(self.k_pars[i])
+                local_k_perps_used.append(self.k_perps[i])
+                local_k_centers_used.append(self.k_centers[i])
+                local_Resp_mat_list.append(aux_array)
+
+        local_size = N.array(len(local_params)).astype(N.int32)
+        self.sendcounts = N.zeros(mpiutil.size, dtype=N.int32)
+        self.displacements = N.zeros(mpiutil.size, dtype=N.int32)
+        mpiutil._comm.Allgather([local_size, MPI.INT], [self.sendcounts, MPI.INT])
+        self.nonzero_alpha_dim = N.sum(self.sendcounts)
+        self.displacements[1:] = N.cumsum(self.sendcounts)[:-1]
+
+        for i in range(local_size):
+            f = h5py.File(self.filesavepath + str(local_params[i])+'.hdf5', 'w')
+            for mi in self.nontrivial_mmode_first_filter:
+                f.create_dataset(str(mi), data=self.project_Q_sky_to_kl(mi, local_Resp_mat_list[i]))
+            f.close()
+        print('Process {} done!'.format(mpiutil.rank))
+        mpiutil.barrier()
 
         k_pars_used = N.empty(self.nonzero_alpha_dim)
         k_perps_used = N.empty(self.nonzero_alpha_dim)

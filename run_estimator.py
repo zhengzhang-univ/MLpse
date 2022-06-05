@@ -17,7 +17,7 @@ kltrans_name = 'dk_5thresh_fg_1000thresh'
 Scaling = True
 Regularized = True
 outputname = "MLPSE_Viraj_test"
-Response_matrices_filename = "/data/zzhang/Viraj/ResponseMatricesKL.hdf5"
+Response_matrices_filename = "/data/zzhang/Viraj/tmp/"
 
 
 # Fetch info about the telescope, SVD, KL filters, parameters of observation, etc.
