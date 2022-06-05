@@ -350,6 +350,8 @@ class Covariance_saveKL(Covariances):
         for i in range(local_size):
             f = h5py.File(self.filesavepath + str(local_params[i])+'.hdf5', 'w')
             for mi in self.nontrivial_mmode_first_filter:
+                if mpiutil.rank0:
+                    print(mi)
                 f.create_dataset(str(mi), data=self.project_Q_sky_to_kl(mi, local_Resp_mat_list[i]))
             f.close()
         print('Process {} done!'.format(mpiutil.rank))
