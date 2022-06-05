@@ -187,7 +187,7 @@ class Covariance_saveKL(Covariances):
         self.resp_mat_shape = (npol, npol, ldim, nfreq, nfreq)
         self.filter_m_modes() # Filter out trivial mmodes on KL basis
         self.filesavepath = filepath
-        #self.make_response_matrix()
+        self.make_response_matrix()
         mpiutil.barrier()
 
     def load_Q_kl_list(self,mi):
@@ -236,7 +236,7 @@ class Covariance_saveKL(Covariances):
         mpiutil._comm.Allgather([local_size, MPI.INT], [self.sendcounts, MPI.INT])
         self.nonzero_alpha_dim = N.sum(self.sendcounts)
         self.displacements[1:] = N.cumsum(self.sendcounts)[:-1]
-
+        """
         for i in range(local_size):
             f = h5py.File(self.filesavepath + str(local_params[i])+'.hdf5', 'w')
             for mi in self.nontrivial_mmode_list:
@@ -246,7 +246,7 @@ class Covariance_saveKL(Covariances):
             f.close()
         print('Process {} done!'.format(mpiutil.rank))
         mpiutil.barrier()
-
+        """
         k_pars_used = N.empty(self.nonzero_alpha_dim)
         k_perps_used = N.empty(self.nonzero_alpha_dim)
         k_centers_used = N.empty(self.nonzero_alpha_dim)
