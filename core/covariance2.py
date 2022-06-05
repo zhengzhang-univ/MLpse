@@ -187,7 +187,7 @@ class Covariance_saveKL(Covariances):
         self.resp_mat_shape = (npol, npol, ldim, nfreq, nfreq)
         self.filter_m_modes() # Filter out trivial mmodes on KL basis
         self.filesavepath = filepath
-        self.make_response_matrix()
+        #self.make_response_matrix()
         mpiutil.barrier()
 
     def load_Q_kl_list(self,mi):

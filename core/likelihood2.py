@@ -10,7 +10,7 @@ class Likelihood:
         self.pvec = None
         self.threshold = threshold
         self.CV = covariance_class_obj
-        self.dim = self.CV.nonzero_alpha_dim
+        self.dim = len(self.CV.para_ind_list)
         self.nontrivial_mmode_list = self.CV.nontrivial_mmode_list
         self.local_ms = mpiutil.partition_list_mpi(self.nontrivial_mmode_list, method="alt")
         fdata = h5py.File(data_path, 'r')
