@@ -257,18 +257,6 @@ class Covariance_saveKL(Covariances):
         mpiutil.barrier()
         return
 
-    def save_Q_kl_m(self,mi):
-        print("Saving Q KL {}".format(mi))
-        result = N.array([self.project_Q_sky_to_kl(mi, item)
-                          for item in self.local_Resp_mat_list]).astype(complex)
-        for r in range(mpiutil.size):
-            if r == mpiutil.rank:
-                f = h5py.File('mydataset.hdf5', 'a')
-                for j in self.local_para_ind_list:
-                    f.create_dataset(str(mi)+'/'+str(j), data=result[j])
-                f.close()
-        mpiutil.barrier()
-        return
 
     def make_response_matrix(self):
         # aux_list = mpiutil.parallel_map(self.make_response_matrix_sky, list(range(self.alpha_dim)))
@@ -297,7 +285,19 @@ class Covariance_saveKL(Covariances):
 
         self.nontrivial_mmode_list = []
         for mi in self.nontrivial_mmode_first_filter:
-            self.save_Q_kl_m(mi)
+            # self.save_Q_kl_m(mi)
+            print("Saving Q KL {}".format(mi))
+            result = N.array([self.project_Q_sky_to_kl(mi, item)
+                              for item in self.local_Resp_mat_list]).astype(complex)
+            for r in range(mpiutil.size):
+                mpiutil.barrier()
+                if r == mpiutil.rank:
+                    f = h5py.File(self.filesavepath, 'a')
+                    for j in range(local_size):
+                        f.create_dataset(str(mi) + '/' + str(self.local_para_ind_list[j]),
+                                         data=result[j])
+                    f.close()
+            mpiutil.barrier()
 
         k_pars_used = N.empty(self.nonzero_alpha_dim)
         k_perps_used = N.empty(self.nonzero_alpha_dim)
