@@ -190,11 +190,18 @@ class Covariance_saveKL(Covariances):
         self.make_response_matrix()
         mpiutil.barrier()
 
+    def make_covariance_kl_m(self, pvec, mi, threshold = None):
+        cv_mat = self.make_noise_covariance_kl_m(mi, threshold)
+        # assert len(pvec)==self.nonzero_alpha_dim
+        for i in range(self.nonzero_alpha_dim):
+            cv_mat += pvec[i]*self.load_Q_kl_mi_param(mi,self.para_ind_list[i])
+        return cv_mat
+
     def load_Q_kl_list(self,mi):
         return [self.load_Q_kl_mi_param(mi, p) for p in self.para_ind_list]
 
     def load_Q_kl_mi_param(self,mi,param_ind):
-        return h5py.File(self.filesavepath + str(param_ind) + ".hdf5",'r')[str(mi)][...]
+        return h5py.File(self.filesavepath + str(param_ind) + ".hdf5",'r')[str(mi)][...].astype(N.csingle)
 
     def filter_m_modes(self):
         self.nontrivial_mmode_list = []
@@ -211,7 +218,7 @@ class Covariance_saveKL(Covariances):
         mat[0, 0, :, :, :] = qsky
         mproj = self.beamtransfer.project_matrix_sky_to_svd(mi, mat, temponly=True)
         result = self.kltrans.project_matrix_svd_to_kl(mi, mproj)
-        return (result + result.conj().T)/2
+        return ((result + result.conj().T)/2).astype(N.csingle)
 
     def make_response_matrix(self):
         local_params = []

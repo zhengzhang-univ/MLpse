@@ -93,8 +93,9 @@ class Likelihood_with_J_only(Likelihood):
             self.jac = sum(list(jac))/self.mmode_count
     
     def make_funs_mi(self, mi):
-        Q_alpha_list = self.CV.load_Q_kl_list(mi)
-        C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
+        # Q_alpha_list = self.CV.load_Q_kl_list(mi)
+        # C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
+        C = self.CV.make_covariance_kl_m(self.pvec, mi, self.threshold)
         len = C.shape[0]
         Identity = N.identity(len)
         local_mindex = self.local_ms.index(mi)
@@ -110,8 +111,7 @@ class Likelihood_with_J_only(Likelihood):
         
         # compute m-mode Jacobian
         aux = (Identity - C_inv_D) @ C_inv
-
-        jac_mi = N.array([N.trace(Q_alpha_list[i] @ aux)
+        jac_mi = N.array([N.trace(self.CV.load_Q_kl_mi_param(mi,self.CV.para_ind_list[i]) @ aux)
                           for i in range(self.dim)]).reshape((self.dim,))
                 
         return fun_mi.real, jac_mi.real
