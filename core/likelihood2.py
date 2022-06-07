@@ -1,4 +1,6 @@
-import numpy as N  
+import copy
+
+import numpy as N
 import scipy.linalg
 import h5py
 from core import mpiutil
@@ -19,6 +21,7 @@ class Likelihood:
         self.mmode_count = len(self.nontrivial_mmode_list)
         parameters = self.CV.make_binning_power()
         self.parameter_model_values = [parameters[i] for i in self.CV.para_ind_list]
+        self.local_cv_noise_kl = [self.CV.make_noise_covariance_kl_m(mi, threshold) for mi in self.local_ms]
 
     def __call__(self, pvec):
         if self.pvec is pvec:
@@ -30,6 +33,14 @@ class Likelihood:
                                        )
             # Unpack into separate lists of the log-likelihood function, jacobian, and hessian
             return sum(list(fun))/self.mmode_count
+
+    def make_covariance_kl_m(self, pvec, mi, threshold = None):
+        local_mindex = self.local_ms.index(mi)
+        # assert len(pvec)==self.nonzero_alpha_dim
+        cv_mat = copy.deepcopy(self.local_cv_noise_kl[local_mindex])
+        for i in range(self.CV.nonzero_alpha_dim):
+            cv_mat += pvec[i]*self.CV.load_Q_kl_mi_param(mi,self.CV.para_ind_list[i])
+        return cv_mat
             
     def filter_m_modes_2(self):
         m_list = []
@@ -95,7 +106,7 @@ class Likelihood_with_J_only(Likelihood):
     def make_funs_mi(self, mi):
         # Q_alpha_list = self.CV.load_Q_kl_list(mi)
         # C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
-        C = self.CV.make_covariance_kl_m(self.pvec, mi, self.threshold)
+        C = self.make_covariance_kl_m(self.pvec, mi, self.threshold)
         len = C.shape[0]
         Identity = N.identity(len)
         local_mindex = self.local_ms.index(mi)

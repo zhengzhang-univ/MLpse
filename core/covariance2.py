@@ -190,13 +190,6 @@ class Covariance_saveKL(Covariances):
         self.make_response_matrix()
         mpiutil.barrier()
 
-    def make_covariance_kl_m(self, pvec, mi, threshold = None):
-        cv_mat = self.make_noise_covariance_kl_m(mi, threshold)
-        # assert len(pvec)==self.nonzero_alpha_dim
-        for i in range(self.nonzero_alpha_dim):
-            cv_mat += pvec[i]*self.load_Q_kl_mi_param(mi,self.para_ind_list[i])
-        return cv_mat
-
     def load_Q_kl_list(self,mi):
         return [self.load_Q_kl_mi_param(mi, p) for p in self.para_ind_list]
 
