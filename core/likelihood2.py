@@ -9,7 +9,8 @@ import sys
 
 class Likelihood:
     def __init__(self, data_path, covariance_class_obj, threshold = None):
-        self.pvec = None
+        self.jpvec = None
+        self.fpvec = None
         self.threshold = threshold
         self.CV = covariance_class_obj
         self.dim = len(self.CV.para_ind_list)
@@ -51,25 +52,17 @@ class Likelihood:
             else:
                 m_list.append(mi)
         return m_list
-    
-    def make_funs_mi(self, mi):
-        local_mindex = self.local_ms.index(mi)
-        Q_alpha_list = self.CV.load_Q_kl_list(mi)
-        C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
-        len = C.shape[0]
-        vis_kl = self.local_data_kl_m[local_mindex, :len]
-        v_column = N.matrix(vis_kl.reshape((-1,1)))
-        Dmat = v_column @ v_column.H
-        
-        C_inv = scipy.linalg.inv(C)
-        C_inv = (C_inv + C_inv.conj().T)/2
-        C_inv_D = C_inv @ Dmat
 
-        del C_inv, v_column, vis_kl, len
-        
+    def make_funs_mi(self, mi):
+        C = self.make_covariance_kl_m(self.pvec, mi, self.threshold)
+        len = C.shape[0]
+        local_mindex = self.local_ms.index(mi)
+        vis_kl = self.local_data_kl_m[local_mindex, :len]
+        v_column = N.matrix(vis_kl.reshape((-1, 1)))
+        C_inv = scipy.linalg.inv(C)
+        C_inv_D = C_inv @ v_column @ v_column.H
         # compute m-mode log-likelihood
         fun_mi = N.linalg.slogdet(C)[1] + N.trace(C_inv_D)
-
         return fun_mi.real
 """    
     def calculate_Errors(self):
@@ -94,16 +87,27 @@ class Likelihood_with_J_only(Likelihood):
         if self.pvec is pvec:
             return
         else:
-            self.pvec = pvec                
+            self.fpvec = pvec
+            self.jpvec = pvec
             Result = mpiutil.parallel_map(
-                                          self.make_funs_mi, self.nontrivial_mmode_list, method="alt"
+                                          self.make_funs_and_jacs_mi, self.nontrivial_mmode_list, method="alt"
                                           )
             # Unpack into separate lists of the log-likelihood function, jacobian, and hessian
             fun, jac = list(zip(*Result))
             self.fun = sum(list(fun))/self.mmode_count
             self.jac = sum(list(jac))/self.mmode_count
-    
-    def make_funs_mi(self, mi):
+
+    def fetch_function_value(self,pvec):
+        if self.fpvec == pvec:
+            return
+        else:
+            self.fpvec = pvec
+            Result = mpiutil.parallel_map(
+                self.make_funs_mi, self.nontrivial_mmode_list, method="alt"
+            )
+            self.fun = sum(Result)/self.mmode_count
+
+    def make_funs_and_jacs_mi(self, mi):
         # Q_alpha_list = self.CV.load_Q_kl_list(mi)
         # C = self.CV.make_covariance_kl_m(self.pvec, mi, Q_alpha_list, self.threshold)
         C = self.make_covariance_kl_m(self.pvec, mi, self.threshold)
@@ -114,7 +118,7 @@ class Likelihood_with_J_only(Likelihood):
         v_column = N.matrix(vis_kl.reshape((-1, 1)))
         del vis_kl, len
         C_inv = scipy.linalg.inv(C)
-        C_inv = (C_inv + C_inv.conj().T)/2
+        #C_inv = (C_inv + C_inv.conj().T)/2
         C_inv_D = C_inv @ v_column @ v_column.H
         del v_column
         # compute m-mode log-likelihood

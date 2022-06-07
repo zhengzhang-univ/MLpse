@@ -8,6 +8,7 @@ import time
 import h5py
 from numpy import linalg as LA
 import copy
+import time
 
 # Inputs:
 configfile = "/data/zzhang/Viraj/drift_prod_hirax_survey_49elem_7point_64bands/config.yaml"
@@ -16,7 +17,7 @@ kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim = 0, 0.30, 31,
 kltrans_name = 'dk_5thresh_fg_1000thresh'
 Scaling = True
 Regularized = True
-outputname = "MLPSE_Viraj_test"
+outputname = "MLPSE_Viraj_test_2"
 Response_matrices_filename = "/data/zzhang/Viraj/tmp/"
 
 
@@ -50,6 +51,8 @@ if Scaling:
         def log_likelihood(xvec):
             pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1
             test(pvec)
+            if mpiutil.rank == 1:
+                print("Evaluate function at {}".format())
             return test.fun + LA.norm(xvec)
         def Jacobian(xvec):
             pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1
