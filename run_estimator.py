@@ -30,7 +30,7 @@ del CV, pipeline_info
 
 p_th =copy.deepcopy(test.parameter_model_values)
 p_th = N.array(p_th)
-p0 = p_th
+p0 = p_th/2.
 
 if Scaling:
     p0 = N.log(2*p_th)
@@ -73,14 +73,14 @@ else:
 
 
 st = time.time()
-res = minimize(log_likelihood, p0, method='BFGS', jac= Jacobian, tol=1e-3, options={'gtol': 1e-4, 'disp': True, 'maxiter':300, 'return_all':True}) # rex.x is the result.
+res = minimize(log_likelihood, p0, method='BFGS', jac= Jacobian, tol=1e-3, options={'gtol': 1e-2, 'disp': True, 'maxiter':200, 'return_all':True}) # rex.x is the result.
 et = time.time()
 
 
 
 if mpiutil.rank0:
     if Scaling:
-        result =(N.exp(res.x) + N.exp(-res.x))*.5 - 1
+        result = (N.exp(res.x) + N.exp(-res.x))*.5 - 1
     else:
         result = res.x
     print("***** Time elapsed for the minimization: %f ***** \n" % (et - st))
