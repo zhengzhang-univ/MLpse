@@ -9,6 +9,7 @@ import sys
 
 class Likelihood:
     def __init__(self, data_path, covariance_class_obj, threshold = None):
+        self.pvec = None
         self.jpvec = None
         self.fpvec = None
         self.threshold = threshold
@@ -87,8 +88,7 @@ class Likelihood_with_J_only(Likelihood):
         if self.pvec is pvec:
             return
         else:
-            self.fpvec = pvec
-            self.jpvec = pvec
+            self.pvec = pvec
             Result = mpiutil.parallel_map(
                                           self.make_funs_and_jacs_mi, self.nontrivial_mmode_list, method="alt"
                                           )
