@@ -8,7 +8,6 @@ import time
 import h5py
 from numpy import linalg as LA
 import copy
-import time
 
 # Inputs:
 configfile = "/data/zzhang/Viraj/drift_prod_hirax_survey_49elem_7point_64bands/config.yaml"
@@ -32,6 +31,8 @@ del CV, pipeline_info
 p_th =copy.deepcopy(test.parameter_model_values)
 p_th = N.array(p_th)
 p0 = p_th/2.
+fcount = 0
+jcount = 0
 
 if Scaling:
     p0 = N.log(2*p_th)
@@ -52,12 +53,18 @@ if Scaling:
             pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1
             test(pvec)
             if mpiutil.rank == 1:
-                print("Evaluate function at {}".format())
+                global fcount
+                fcount+=1
+                print("Func Counter: {} at t={}".format(fcount,time.time()))
             return test.fun + LA.norm(xvec)
         def Jacobian(xvec):
             pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1
             derpvec = (N.exp(xvec) - N.exp(-xvec))*.5
             test(pvec)
+            if mpiutil.rank == 1:
+                global jcount
+                jcount+=1
+                print("Func Counter: {} at t={}".format(jcount,time.time()))
             return test.jac*derpvec + xvec/LA.norm(xvec)
 elif not Regularized:
     def log_likelihood(pvec):
@@ -76,7 +83,7 @@ else:
 
 
 st = time.time()
-res = minimize(log_likelihood, p0, method='BFGS', jac= Jacobian, tol=1e-3, options={'gtol': 1e-2, 'disp': True, 'maxiter':200, 'return_all':True}) # rex.x is the result.
+res = minimize(log_likelihood, p0, method='BFGS', jac= Jacobian, tol=1e-3, options={'gtol': 1e-2, 'disp': True, 'maxiter':100, 'return_all':True}) # rex.x is the result.
 et = time.time()
 
 
