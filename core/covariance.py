@@ -62,7 +62,7 @@ class Covariance_saveKL(Covariances):
     def __call__(self, filepath, saveKL=True):
         self.filter_m_modes() # Filter out trivial mmodes on KL basis
         self.filesavepath = filepath
-        self.make_response_matrix()
+        self.make_response_matrix(saveKL)
         mpiutil.barrier()
 
     def make_response_matrix(self, saveKL=True):
