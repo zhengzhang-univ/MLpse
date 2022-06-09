@@ -38,12 +38,12 @@ class Likelihood:
             if len(self.local_ms) is not 0:
                 Result = [self.make_funs_and_jacs_mi(mi) for mi in self.local_ms]
                 auxf, auxj = list(zip(*Result))
-                send_f = N.array(sum(auxf))
+                send_f = N.array([sum(auxf)])
                 send_j = sum(auxj)
             else:
-                send_f = N.array(0.)
+                send_f = N.array([0.])
                 send_j = N.zeros((self.dim,))
-            recv_f = N.array(0.)
+            recv_f = N.array([0.])
             recv_j = N.zeros((self.dim,))
             mpiutil._comm.Allreduce(send_f, recv_f)
             mpiutil._comm.Allreduce(send_j, recv_j)
