@@ -24,7 +24,7 @@ Response_matrices_filename = "/data/zzhang/Viraj/tmp/"
 # Fetch info about the telescope, SVD, KL filters, parameters of observation, etc.
 pipeline_info = Parameters_collection.from_config(configfile)
 CV = Covariance_saveKL(kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim, pipeline_info[kltrans_name])
-CV(Response_matrices_filename, saveKL=False)
+CV(Response_matrices_filename, saveKL=True)
 
 test = Likelihood(data_path, CV)
 del CV, pipeline_info

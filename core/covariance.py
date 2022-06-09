@@ -136,7 +136,7 @@ class Covariance_saveKL(Covariances):
         mat[0, 0, :, :, :] = qsky
         mproj = self.beamtransfer.project_matrix_sky_to_svd(mi, mat, temponly=True)
         result = self.kltrans.project_matrix_svd_to_kl(mi, mproj)
-        return ((result + result.conj().T)/2).astype(N.csingle)
+        return ((result + result.conj().T)/2).astype(N.csingle) # numpy csingle itemsize = 8 bytes
 
 
 
