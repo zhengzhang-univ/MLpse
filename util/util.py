@@ -1,5 +1,5 @@
 import time
-from mpiutil import rank0
+from util.mpiutil import rank0
 import functools
 
 def myTiming_rank0(func):
