@@ -51,13 +51,11 @@ if Scaling:
             return result
     else:
         @myTiming
-        @functools.lru_cache(maxsize=3)
         def log_likelihood(xvec):
             pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1
             test(pvec)
             return test.fun + LA.norm(xvec)
         @myTiming
-        @functools.lru_cache(maxsize=3)
         def Jacobian(xvec):
             pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1
             derpvec = (N.exp(xvec) - N.exp(-xvec))*.5
