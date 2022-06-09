@@ -72,7 +72,6 @@ class Likelihood:
 
     @myTiming
     def make_fun_and_jac_mi(self, mi):
-        print("mi = {}, KL length = {}".format(mi, self.CV.kl_len[self.nontrivial_mmode_list.index(mi)]))
         C = self.make_covariance_kl_m(self.pvec, mi)
         local_mindex = self.local_ms.index(mi)
         C_inv = scipy.linalg.inv(C)
@@ -83,6 +82,7 @@ class Likelihood:
         aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
         jac_mi = N.array([N.trace(self.CV.load_Q_kl_mi_param(mi, self.CV.para_ind_list[i]) @ aux)
                           for i in range(self.dim)]).reshape((self.dim,))
+        print("**make_fun_and_jac_mi: mi = {}, KL length = {}".format(mi, self.CV.kl_len[self.nontrivial_mmode_list.index(mi)]))
         return fun_mi.real, jac_mi.real
 
     @myTiming
@@ -106,6 +106,7 @@ class Likelihood:
         cv_mat = copy.deepcopy(self.local_cv_noise_kl[self.local_ms.index(mi)])
         for i in range(self.dim):
             cv_mat += pvec[i]*self.CV.load_Q_kl_mi_param(mi, self.CV.para_ind_list[i])
+        print("**make_covariance_kl_m: mi = {}, KL length = {}".format(mi, self.CV.kl_len[self.nontrivial_mmode_list.index(mi)]))
         return cv_mat
 
 
