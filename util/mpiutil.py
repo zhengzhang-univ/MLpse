@@ -29,22 +29,6 @@ if _comm is not None and size > 1:
 
 rank0 = rank == 0
 
-
-def myTiming(unwrapped_func):
-    def decorated_function(*args, **kwargs):
-        if rank0:
-            print("Entering" + str(unwrapped_func))
-            begin = time.perf_counter()
-            print(begin)
-        result = unwrapped_func(*args, **kwargs)
-        if rank0:
-            end = time.perf_counter()
-            print(end)
-            print("Elaspsed time", end - begin)
-        return(result)
-    return(decorated_function)
-
-
 def partition_list(full_list, i, n, method="con"):
     """Partition a list into `n` pieces. Return the `i` th partition."""
 

@@ -2,7 +2,7 @@ import numpy as N
 import h5py
 from cora.signal import corr21cm
 from drift.core import skymodel
-from core import mpiutil
+from util import mpiutil
 from mpi4py import MPI
 
 

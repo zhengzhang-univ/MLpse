@@ -1,4 +1,4 @@
-from core.Fetch_info import Parameters_collection
+from util.Fetch_info import Parameters_collection
 from core.covariance import *
 
 # Inputs:

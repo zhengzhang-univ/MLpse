@@ -1,10 +1,10 @@
 import numpy as N
 import h5py
 from drift.core import skymodel
-from core import mpiutil
+from util import mpiutil
 from core.kspace import kspace_cartesian
 from mpi4py import MPI
-from core.mpiutil import myTiming
+from util.util import myTiming
     
     
 class Covariances(kspace_cartesian):
@@ -123,12 +123,15 @@ class Covariance_saveKL(Covariances):
 
     def filter_m_modes(self):
         self.nontrivial_mmode_list = []
+        self.kl_len = []
         for mi in range(self.telescope.mmax + 1):
-            if self.kltrans.modes_m(mi)[0] is None:
+            aux = self.kltrans.modes_m(mi)[0]
+            if aux is None:
                 if mpiutil.rank0:
                     print("The m={} mode is null.".format(mi))
             else:
                 self.nontrivial_mmode_list.append(mi)
+                self.kl_len.append(aux.shape[0])
         return
 
     def project_Q_sky_to_kl(self, mi, qsky):
@@ -137,8 +140,6 @@ class Covariance_saveKL(Covariances):
         mproj = self.beamtransfer.project_matrix_sky_to_svd(mi, mat, temponly=True)
         result = self.kltrans.project_matrix_svd_to_kl(mi, mproj)
         return ((result + result.conj().T)/2).astype(N.csingle) # numpy csingle itemsize = 8 bytes
-
-
 
 """
     def save_Q_kl_m(self,mi):

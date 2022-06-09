@@ -2,14 +2,14 @@ import copy
 import numpy as N
 import scipy.linalg
 import h5py
-from core import mpiutil
-from core.mpiutil import myTiming
+from util import mpiutil
+from util.util import myTiming
+import functools
+
 
 
 class Likelihood:
-    @myTiming
     def __init__(self, data_path, covariance_class_obj, threshold = None):
-        self.pvec = None
         self.threshold = threshold
         self.CV = covariance_class_obj
         self.dim = self.CV.nonzero_alpha_dim
@@ -17,7 +17,8 @@ class Likelihood:
         self.local_ms = mpiutil.partition_list_mpi(self.nontrivial_mmode_list, method="alt")
         self.mmode_count = len(self.nontrivial_mmode_list)
         parameters = self.CV.make_binning_power()
-        self.parameter_model_values = [parameters[i] for i in self.CV.para_ind_list]
+        self.parameter_model_values = N.array([parameters[i] for i in self.CV.para_ind_list])
+        self.pvec = N.zeros_like(self.parameter_model_values)
         self.local_cv_noise_kl = []
         self.local_data_kl_m = []
         fdata = h5py.File(data_path, 'r')
@@ -31,12 +32,11 @@ class Likelihood:
             print(" The likelihood class object has been initialized!")
         mpiutil.barrier()
 
-    @myTiming
     def __call__(self, pvec):
-        if self.pvec is not pvec:
+        if not N.allclose(self.pvec, pvec):
             self.pvec = pvec
             if len(self.local_ms) is not 0:
-                Result = [self.make_funs_and_jacs_mi(mi) for mi in self.local_ms]
+                Result = [self.make_fun_and_jac_mi(mi) for mi in self.local_ms]
                 auxf, auxj = list(zip(*Result))
                 send_f = N.array([sum(auxf)])
                 send_j = sum(auxj)
@@ -53,7 +53,26 @@ class Likelihood:
             return
 
     @myTiming
-    def make_funs_and_jacs_mi(self, mi):
+    def call(self, pvec):
+        if len(self.local_ms) is not 0:
+            Result = [self.make_fun_and_jac_mi(mi) for mi in self.local_ms]
+            auxf, auxj = list(zip(*Result))
+            send_f = N.array([sum(auxf)])
+            send_j = sum(auxj)
+        else:
+            send_f = N.array([0.])
+            send_j = N.zeros((self.dim,))
+        recv_f = N.array([0.])
+        recv_j = N.zeros((self.dim,))
+        mpiutil._comm.Allreduce(send_f, recv_f)
+        mpiutil._comm.Allreduce(send_j, recv_j)
+        fun = recv_f[0] / self.mmode_count
+        jac = recv_j / self.mmode_count
+        return fun, jac
+
+    @myTiming
+    def make_fun_and_jac_mi(self, mi):
+        print("mi = {}, KL length = {}".format(mi, self.CV.kl_len[self.nontrivial_mmode_list.index(mi)]))
         C = self.make_covariance_kl_m(self.pvec, mi)
         local_mindex = self.local_ms.index(mi)
         C_inv = scipy.linalg.inv(C)
@@ -67,11 +86,29 @@ class Likelihood:
         return fun_mi.real, jac_mi.real
 
     @myTiming
+    def make_fun_or_jac_mi(self, mi, jac=False):
+        C = self.make_covariance_kl_m(self.pvec, mi)
+        local_mindex = self.local_ms.index(mi)
+        C_inv = scipy.linalg.inv(C)
+        C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].H
+        if not jac:
+            # compute m-mode log-likelihood
+            result = N.linalg.slogdet(C)[1] + N.trace(C_inv_D)
+        else:
+            # compute m-mode Jacobian
+            aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
+            result = N.array([N.trace(self.CV.load_Q_kl_mi_param(mi, self.CV.para_ind_list[i]) @ aux)
+                              for i in range(self.dim)]).reshape((self.dim,))
+        return result.real
+
+    @myTiming
     def make_covariance_kl_m(self, pvec, mi):
         cv_mat = copy.deepcopy(self.local_cv_noise_kl[self.local_ms.index(mi)])
         for i in range(self.dim):
             cv_mat += pvec[i]*self.CV.load_Q_kl_mi_param(mi, self.CV.para_ind_list[i])
         return cv_mat
+
+
 
 """ 
     def calculate_Errors(self):
