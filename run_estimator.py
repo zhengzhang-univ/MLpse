@@ -1,6 +1,7 @@
 from core.Fetch_info import Parameters_collection
-from core.covariance2 import *
-from core.likelihood2 import Likelihood_with_J_only
+from core.covariance import Covariance_saveKL
+from core.likelihood import Likelihood
+from core.mpiutil import myTiming
 from scipy.optimize import minimize
 import numpy as N
 from core import mpiutil
@@ -16,26 +17,24 @@ kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim = 0, 0.30, 31,
 kltrans_name = 'dk_5thresh_fg_1000thresh'
 Scaling = True
 Regularized = True
-outputname = "MLPSE_Viraj_test_2"
+outputname = "MLPSE_Viraj_test"
 Response_matrices_filename = "/data/zzhang/Viraj/tmp/"
 
 
 # Fetch info about the telescope, SVD, KL filters, parameters of observation, etc.
 pipeline_info = Parameters_collection.from_config(configfile)
 CV = Covariance_saveKL(kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim, pipeline_info[kltrans_name])
-CV(Response_matrices_filename)
+CV(Response_matrices_filename, saveKL=False)
 
-test = Likelihood_with_J_only(data_path, CV)
+test = Likelihood(data_path, CV)
 del CV, pipeline_info
 
-p_th =copy.deepcopy(test.parameter_model_values)
+p_th = copy.deepcopy(test.parameter_model_values)
 p_th = N.array(p_th)
 p0 = p_th/2.
-fcount = 0
-jcount = 0
 
 if Scaling:
-    p0 = N.log(2*p_th)
+    p0 = N.log(2*p0)
     if not Regularized:
         def log_likelihood(xvec):
             # xvec should be N.array object.
@@ -49,22 +48,16 @@ if Scaling:
             result = test.jac*derpvec
             return result
     else:
+        @myTiming
         def log_likelihood(xvec):
             pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1
             test(pvec)
-            if mpiutil.rank == 1:
-                global fcount
-                fcount+=1
-                print("Func Counter: {} at t={}".format(fcount,time.time()))
             return test.fun + LA.norm(xvec)
+        @myTiming
         def Jacobian(xvec):
             pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1
             derpvec = (N.exp(xvec) - N.exp(-xvec))*.5
             test(pvec)
-            if mpiutil.rank == 1:
-                global jcount
-                jcount+=1
-                print("Func Counter: {} at t={}".format(jcount,time.time()))
             return test.jac*derpvec + xvec/LA.norm(xvec)
 elif not Regularized:
     def log_likelihood(pvec):
@@ -83,7 +76,8 @@ else:
 
 
 st = time.time()
-res = minimize(log_likelihood, p0, method='BFGS', jac= Jacobian, tol=1e-3, options={'gtol': 1e-2, 'disp': True, 'maxiter':100, 'return_all':True}) # rex.x is the result.
+res = minimize(log_likelihood, p0, method='BFGS', jac= Jacobian, tol=1e-3,
+               options={'gtol': 1e-3, 'disp': True, 'maxiter':200, 'return_all':True}) # rex.x is the result.
 et = time.time()
 
 

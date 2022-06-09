@@ -1,5 +1,5 @@
 from core.Fetch_info import Parameters_collection
-from core.covariance2 import *
+from core.covariance import *
 
 # Inputs:
 configfile = "/data/zzhang/Viraj/drift_prod_hirax_survey_49elem_7point_64bands/config.yaml"
