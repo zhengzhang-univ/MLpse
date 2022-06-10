@@ -133,7 +133,7 @@ class Likelihood:
         C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].H
         aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
         def trace_product(x):
-            return sum(self.CV.build_Hermitian_from_triu(x) * aux)
+            return N.sum(self.CV.build_Hermitian_from_triu(x) * aux)
         result = N.apply_along_axis(trace_product, axis=0, arr=self.local_Q_triu_kl_m[local_mindex])
         # result = N.array([N.trace(self.CV.load_Q_kl_mi_param(mi, self.CV.para_ind_list[i]) @ aux)
         #                   for i in range(self.dim)]).reshape((self.dim,))
