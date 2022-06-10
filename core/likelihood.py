@@ -3,7 +3,7 @@ import numpy as N
 import scipy.linalg
 import h5py
 from util import mpiutil
-from util.util import myTiming_rank0, cache_last_n_classfunc
+from util.util import myTiming_rank0, cache_last_n_specific
 
 
 class Likelihood:
@@ -18,7 +18,7 @@ class Likelihood:
         self.mmode_count = len(self.nontrivial_mmode_list)
         parameters = self.CV.make_binning_power()
         #global memorysize
-        self.memorysize = 2 * len(self.local_ms)
+        # self.memorysize = 2 * len(self.local_ms)
         self.parameter_model_values = N.array([parameters[i] for i in self.CV.para_ind_list])
         self.pvec = N.zeros_like(self.parameter_model_values)
         self.local_cv_noise_kl = []
@@ -109,7 +109,7 @@ class Likelihood:
         return cv_mat
 
     @myTiming_rank0
-    @cache_last_n_classfunc
+    @cache_last_n_specific(4)
     def make_covariance_kl_m_in_memory(self, pvec, mi):
         mind=self.local_ms.index(mi)
         cv_mat = self.local_cv_noise_kl[mind] + \
