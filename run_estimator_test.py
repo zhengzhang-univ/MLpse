@@ -35,11 +35,13 @@ del CV, pipeline_info
 p_th = copy.deepcopy(test.parameter_model_values)
 p0 = p_th/2.
 
+@myTiming_rank0
 @regularized_scalar(Regularized)
 @scaled_scalar(Scaling)
 def log_likelihood(pvec):
     return test.log_likelihood_func(pvec)
 
+@myTiming_rank0
 @regularized_vector(Regularized)
 @scaled_vector(Scaling)
 def Jacobian(pvec):
