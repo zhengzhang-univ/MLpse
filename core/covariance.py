@@ -138,7 +138,7 @@ class Covariance_saveKL(Covariances):
         return data[N.triu_indices(data.shape[0],k=0)]
 
     def build_Hermitian_from_triu(self, vec):
-        size = N.floor(N.sqrt(2*len(vec)))
+        size = int(N.floor(N.sqrt(2*len(vec))))
         X = N.zeros((size, size),dtype=N.csingle)
         X[N.triu_indices(size, k=0)] = vec.astype(N.csingle)
         X = X + X.conj().T - N.diag(N.diag(X))
