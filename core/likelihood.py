@@ -109,18 +109,17 @@ class Likelihood:
         return cv_mat
 
     @myTiming_rank0
-    @cache_last_n_classfunc
     def make_covariance_kl_m_in_memory(self, pvec, mi):
-        mind=self.local_ms.index(mi)
-        cv_mat = self.local_cv_noise_kl[mind] + \
-                 self.CV.build_Hermitian_from_triu(N.dot(self.local_Q_triu_kl_m[mind], pvec))
+        m=self.local_ms.index(mi)
+        cv_mat = self.local_cv_noise_kl[m] + \
+                 self.CV.build_Hermitian_from_triu(N.einsum("ij,j->i", self.local_Q_triu_kl_m[m], pvec))
         print("**make_covariance_kl_m_in_memory: mi = {}, KL length = {}".format(mi, self.CV.kl_len[self.nontrivial_mmode_list.index(mi)]))
         return cv_mat.astype(N.csingle)
 
     @myTiming_rank0
     def make_function_m(self, pvec, mi):
         local_mindex = self.local_ms.index(mi)
-        C = self.make_covariance_kl_m_in_memory(pvec,mi)
+        C = self.make_covariance_kl_m_in_memory(pvec, mi)
         C_inv = scipy.linalg.inv(C).astype(N.csingle)
         C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].H
         result = N.linalg.slogdet(C)[1] + N.trace(C_inv_D)
