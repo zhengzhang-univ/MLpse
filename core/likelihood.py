@@ -3,9 +3,7 @@ import numpy as N
 import scipy.linalg
 import h5py
 from util import mpiutil
-from util.util import myTiming, myTiming_rank0, cache_last_n_specific
-import functools
-
+from util.util import myTiming_rank0, cache_last_n_specific
 
 
 class Likelihood:
@@ -16,6 +14,8 @@ class Likelihood:
         self.dim = self.CV.nonzero_alpha_dim
         self.nontrivial_mmode_list = self.CV.nontrivial_mmode_list
         self.partition_modes_m()
+        global memorysize
+        memorysize= 2*len(self.local_ms)
         self.mmode_count = len(self.nontrivial_mmode_list)
         parameters = self.CV.make_binning_power()
         self.parameter_model_values = N.array([parameters[i] for i in self.CV.para_ind_list])
@@ -108,18 +108,19 @@ class Likelihood:
         return cv_mat
 
     @myTiming_rank0
-    @cache_last_n_specific(4)
+    @cache_last_n_specific(memorysize)
     def make_covariance_kl_m_in_memory(self, pvec, mi):
         mind=self.local_ms.index(mi)
         cv_mat = self.local_cv_noise_kl[mind] + \
                  self.CV.build_Hermitian_from_triu(N.dot(self.local_Q_triu_kl_m[mind], pvec))
         print("**make_covariance_kl_m: mi = {}, KL length = {}".format(mi, self.CV.kl_len[self.nontrivial_mmode_list.index(mi)]))
-        return cv_mat, scipy.linalg.inv(cv_mat)
+        return cv_mat.astype(N.csingle)
 
     @myTiming_rank0
     def make_function_m(self, pvec, mi):
         local_mindex = self.local_ms.index(mi)
-        C, C_inv = self.make_covariance_kl_m_in_memory(pvec,mi)
+        C = self.make_covariance_kl_m_in_memory(pvec,mi)
+        C_inv = scipy.linalg.inv(C).astype(N.csingle)
         C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].H
         result = N.linalg.slogdet(C)[1] + N.trace(C_inv_D)
         return result.real
@@ -127,14 +128,15 @@ class Likelihood:
     @myTiming_rank0
     def make_jacobian_m(self, pvec, mi):
         local_mindex = self.local_ms.index(mi)
-        C, C_inv = self.make_covariance_kl_m_in_memory(pvec, mi)
+        C = self.make_covariance_kl_m_in_memory(pvec, mi)
+        C_inv = scipy.linalg.inv(C).astype(N.csingle)
         C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].H
         aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
         def trace_product(x):
             return sum(self.CV.build_Hermitian_from_triu(x) * aux)
         result = N.apply_along_axis(trace_product, axis=0, arr=self.local_Q_triu_kl_m[local_mindex])
-        #result = N.array([N.trace(self.CV.load_Q_kl_mi_param(mi, self.CV.para_ind_list[i]) @ aux)
-        #                  for i in range(self.dim)]).reshape((self.dim,))
+        # result = N.array([N.trace(self.CV.load_Q_kl_mi_param(mi, self.CV.para_ind_list[i]) @ aux)
+        #                   for i in range(self.dim)]).reshape((self.dim,))
         return result.real
 
     @myTiming_rank0

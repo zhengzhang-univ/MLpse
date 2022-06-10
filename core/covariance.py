@@ -55,7 +55,8 @@ class Covariances(kspace_cartesian):
         cv_totaln = cv_fg_svd + cv_thermal_svd
         # Project into KL basis
         cv_n_kl = self.kltrans.project_matrix_svd_to_kl(mi, cv_totaln, threshold)
-        return (cv_n_kl + cv_n_kl.conj().T)/2
+        result = (cv_n_kl + cv_n_kl.conj().T)/2
+        return result.astype(N.csingle)
 
 
 class Covariance_saveKL(Covariances):
