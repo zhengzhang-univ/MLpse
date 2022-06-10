@@ -105,7 +105,6 @@ class Likelihood:
         cv_mat = copy.deepcopy(self.local_cv_noise_kl[self.local_ms.index(mi)])
         for i in range(self.dim):
             cv_mat += pvec[i]*self.CV.load_Q_kl_mi_param(mi, self.CV.para_ind_list[i])
-        print("**make_covariance_kl_m: mi = {}, KL length = {}".format(mi, self.CV.kl_len[self.nontrivial_mmode_list.index(mi)]))
         return cv_mat
 
     @myTiming_rank0
@@ -113,7 +112,6 @@ class Likelihood:
         m=self.local_ms.index(mi)
         cv_mat = self.local_cv_noise_kl[m] + \
                  self.CV.build_Hermitian_from_triu(N.einsum("ij,j->i", self.local_Q_triu_kl_m[m], pvec))
-        print("**make_covariance_kl_m_in_memory: mi = {}, KL length = {}".format(mi, self.CV.kl_len[self.nontrivial_mmode_list.index(mi)]))
         return cv_mat.astype(N.csingle)
 
     @myTiming_rank0

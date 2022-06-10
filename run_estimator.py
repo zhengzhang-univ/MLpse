@@ -7,9 +7,7 @@ import numpy as N
 from util import mpiutil
 import time
 import h5py
-from numpy import linalg as LA
 import copy
-import functools
 
 # Inputs:
 configfile = "/data/zzhang/Viraj/drift_prod_hirax_survey_49elem_7point_64bands/config.yaml"
@@ -35,47 +33,6 @@ del CV, pipeline_info
 p_th = copy.deepcopy(test.parameter_model_values)
 p0 = p_th/2.
 
-if Scaling:
-    p0 = N.log(2*p0)
-    if not Regularized:
-        def log_likelihood(xvec):
-            # xvec should be N.array object.
-            pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1.
-            test(pvec)
-            return test.fun    
-        def Jacobian(xvec):
-            pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1.
-            derpvec = (N.exp(xvec) - N.exp(-xvec))*.5
-            test(pvec)
-            result = test.jac*derpvec
-            return result
-    else:
-        @myTiming
-        def log_likelihood(xvec):
-            pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1
-            test(pvec)
-            return test.fun + LA.norm(xvec)
-        @myTiming
-        def Jacobian(xvec):
-            pvec = (N.exp(xvec) + N.exp(-xvec))*.5 - 1
-            derpvec = (N.exp(xvec) - N.exp(-xvec))*.5
-            test(pvec)
-            return test.jac*derpvec + xvec/LA.norm(xvec)
-elif not Regularized:
-    def log_likelihood(pvec):
-        test(pvec)
-        return test.fun
-    def Jacobian(pvec):
-        test(pvec)
-        return test.jac
-else:
-    def log_likelihood(pvec):
-        test(pvec)
-        return test.fun + LA.norm(pvec)
-    def Jacobian(pvec):
-        test(pvec)
-        return test.jac + pvec/LA.norm(pvec)
-
 @regularized_scalar(Regularized)
 @scaled_scalar(Scaling)
 def log_likelihood(pvec):
@@ -92,7 +49,7 @@ if Scaling:
 
 st = time.time()
 res = minimize(log_likelihood, p0, method='BFGS', jac= Jacobian, tol=1e-3,
-               options={'gtol': 1e-3, 'disp': True, 'maxiter':200, 'return_all':True}) # rex.x is the result.
+               options={'gtol': 1e-4, 'disp': True, 'maxiter':200, 'return_all':True}) # rex.x is the result.
 et = time.time()
 
 
