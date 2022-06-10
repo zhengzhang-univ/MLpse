@@ -1,7 +1,7 @@
 from util.Fetch_info import Parameters_collection
 from core.covariance import Covariance_saveKL
 from core.likelihood import Likelihood
-from util.util import myTiming
+from util.util import *
 from scipy.optimize import minimize
 import numpy as N
 from util import mpiutil
@@ -76,42 +76,18 @@ else:
         test(pvec)
         return test.jac + pvec/LA.norm(pvec)
 
-"""
+@regularized_scalar(Regularized)
+@scaled_scalar(Scaling)
+def log_likelihood(pvec):
+    return test.log_likelihood_func(pvec)
+
+@regularized_vector(Regularized)
+@scaled_vector(Scaling)
+def Jacobian(pvec):
+    return test.jacobian(pvec)
+
 if Scaling:
-    p0 = N.log(2*p0)
-    if not Regularized:
-        def log_likelihood_and_jac(xvec):
-            pvec = (N.exp(xvec) + N.exp(-xvec)) * .5 - 1.
-            derpvec = (N.exp(xvec) - N.exp(-xvec)) * .5
-            fun, jac = test(pvec)
-            return fun, jac*derpvec
-    else:
-        def log_likelihood_and_jac(xvec):
-            pvec = (N.exp(xvec) + N.exp(-xvec)) * .5 - 1
-            derpvec = (N.exp(xvec) - N.exp(-xvec)) * .5
-            fun, jac = test(pvec)
-            return fun + LA.norm(xvec), jac*derpvec + xvec/LA.norm(xvec)
-elif not Regularized:
-    def log_likelihood_and_jac(pvec):
-        fun,jac = test(pvec)
-        return fun, jac
-else:
-    def log_likelihood_and_jac(pvec):
-        fun, jac = test(pvec)
-        return fun + LA.norm(pvec), jac + pvec/LA.norm(pvec)
-
-
-        @myTiming
-        @functools.lru_cache(maxsize=3)
-def log_likelihood(xvec):
-    fun, jac = log_likelihood_and_jac(xvec)
-    return fun
-
-def Jacobian(xvec):
-    fun, jac = log_likelihood_and_jac(xvec)
-    return jac
-
-"""
+    p0 = N.log(2 * p0)
 
 
 st = time.time()

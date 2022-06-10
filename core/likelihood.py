@@ -3,30 +3,33 @@ import numpy as N
 import scipy.linalg
 import h5py
 from util import mpiutil
-from util.util import myTiming
+from util.util import myTiming, myTiming_rank0, cache_last_n_specific
 import functools
 
 
 
 class Likelihood:
+    @myTiming_rank0
     def __init__(self, data_path, covariance_class_obj, threshold = None):
         self.threshold = threshold
         self.CV = covariance_class_obj
         self.dim = self.CV.nonzero_alpha_dim
         self.nontrivial_mmode_list = self.CV.nontrivial_mmode_list
-        self.local_ms = mpiutil.partition_list_mpi(self.nontrivial_mmode_list, method="alt")
+        self.partition_modes_m()
         self.mmode_count = len(self.nontrivial_mmode_list)
         parameters = self.CV.make_binning_power()
         self.parameter_model_values = N.array([parameters[i] for i in self.CV.para_ind_list])
         self.pvec = N.zeros_like(self.parameter_model_values)
         self.local_cv_noise_kl = []
         self.local_data_kl_m = []
+        self.local_Q_triu_kl_m = []
         fdata = h5py.File(data_path, 'r')
         for mi in self.local_ms:
             cvnoise = self.CV.make_noise_covariance_kl_m(mi, threshold)
             length = cvnoise.shape[0]
             self.local_cv_noise_kl.append(cvnoise)
             self.local_data_kl_m.append(N.matrix(fdata['vis'][mi][:length].reshape((-1, 1))))
+            self.local_Q_triu_kl_m.append(self.CV.load_Q_kl_mi_triu(mi))
         fdata.close()
         if mpiutil.rank0:
             print(" The likelihood class object has been initialized!")
@@ -52,25 +55,36 @@ class Likelihood:
         else:
             return
 
-    @myTiming
-    def call(self, pvec):
-        if len(self.local_ms) is not 0:
-            Result = [self.make_fun_and_jac_mi(mi) for mi in self.local_ms]
-            auxf, auxj = list(zip(*Result))
-            send_f = N.array([sum(auxf)])
-            send_j = sum(auxj)
-        else:
-            send_f = N.array([0.])
-            send_j = N.zeros((self.dim,))
-        recv_f = N.array([0.])
-        recv_j = N.zeros((self.dim,))
-        mpiutil._comm.Allreduce(send_f, recv_f)
-        mpiutil._comm.Allreduce(send_j, recv_j)
-        fun = recv_f[0] / self.mmode_count
-        jac = recv_j / self.mmode_count
-        return fun, jac
 
-    @myTiming
+    def partition_modes_m(self):
+        size = mpiutil.size
+        mlen = len(self.nontrivial_mmode_list)
+        if size < mlen:
+            self.local_ms = []
+            nbatch = int(N.floor(mlen/size))
+            sorted_indices = N.argsort(N.array(self.CV.kl_len))[::-1]  # from max to min
+            for i in range(nbatch):
+                if i % 2 == 0:
+                    aux = sorted_indices[size*i:size*(i+1)]
+                else:
+                    aux = sorted_indices[size*i:size*(i+1)][::-1]
+                m = self.nontrivial_mmode_list[aux[mpiutil.rank]]
+                self.local_ms.append(m)
+            if nbatch % 2 == 0:
+                if mpiutil.rank < (mlen-nbatch*size):
+                    aux = sorted_indices[size*nbatch:]
+                    m = self.nontrivial_mmode_list[aux[mpiutil.rank]]
+                    self.local_ms.append(m)
+            else:
+                if (size - mpiutil.rank - 1) < (mlen - nbatch * size):
+                    aux = sorted_indices[size * nbatch:]
+                    m = self.nontrivial_mmode_list[aux[size - mpiutil.rank - 1]]
+                    self.local_ms.append(m)
+        else:
+            self.local_ms = mpiutil.partition_list_mpi(self.nontrivial_mmode_list)
+        return
+
+    @myTiming_rank0
     def make_fun_and_jac_mi(self, mi):
         C = self.make_covariance_kl_m(self.pvec, mi)
         local_mindex = self.local_ms.index(mi)
@@ -85,23 +99,7 @@ class Likelihood:
         print("**make_fun_and_jac_mi: mi = {}, KL length = {}".format(mi, self.CV.kl_len[self.nontrivial_mmode_list.index(mi)]))
         return fun_mi.real, jac_mi.real
 
-    @myTiming
-    def make_fun_or_jac_mi(self, mi, jac=False):
-        C = self.make_covariance_kl_m(self.pvec, mi)
-        local_mindex = self.local_ms.index(mi)
-        C_inv = scipy.linalg.inv(C)
-        C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].H
-        if not jac:
-            # compute m-mode log-likelihood
-            result = N.linalg.slogdet(C)[1] + N.trace(C_inv_D)
-        else:
-            # compute m-mode Jacobian
-            aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
-            result = N.array([N.trace(self.CV.load_Q_kl_mi_param(mi, self.CV.para_ind_list[i]) @ aux)
-                              for i in range(self.dim)]).reshape((self.dim,))
-        return result.real
-
-    @myTiming
+    @myTiming_rank0
     def make_covariance_kl_m(self, pvec, mi):
         cv_mat = copy.deepcopy(self.local_cv_noise_kl[self.local_ms.index(mi)])
         for i in range(self.dim):
@@ -109,6 +107,61 @@ class Likelihood:
         print("**make_covariance_kl_m: mi = {}, KL length = {}".format(mi, self.CV.kl_len[self.nontrivial_mmode_list.index(mi)]))
         return cv_mat
 
+    @myTiming_rank0
+    @cache_last_n_specific(4)
+    def make_covariance_kl_m_in_memory(self, pvec, mi):
+        mind=self.local_ms.index(mi)
+        cv_mat = self.local_cv_noise_kl[mind] + \
+                 self.CV.build_Hermitian_from_triu(N.dot(self.local_Q_triu_kl_m[mind], pvec))
+        print("**make_covariance_kl_m: mi = {}, KL length = {}".format(mi, self.CV.kl_len[self.nontrivial_mmode_list.index(mi)]))
+        return cv_mat, scipy.linalg.inv(cv_mat)
+
+    @myTiming_rank0
+    def make_function_m(self, pvec, mi):
+        local_mindex = self.local_ms.index(mi)
+        C, C_inv = self.make_covariance_kl_m_in_memory(pvec,mi)
+        C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].H
+        result = N.linalg.slogdet(C)[1] + N.trace(C_inv_D)
+        return result.real
+
+    @myTiming_rank0
+    def make_jacobian_m(self, pvec, mi):
+        local_mindex = self.local_ms.index(mi)
+        C, C_inv = self.make_covariance_kl_m_in_memory(pvec, mi)
+        C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].H
+        aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
+        def trace_product(x):
+            return sum(self.CV.build_Hermitian_from_triu(x) * aux)
+        result = N.apply_along_axis(trace_product, axis=0, arr=self.local_Q_triu_kl_m[local_mindex])
+        #result = N.array([N.trace(self.CV.load_Q_kl_mi_param(mi, self.CV.para_ind_list[i]) @ aux)
+        #                  for i in range(self.dim)]).reshape((self.dim,))
+        return result.real
+
+    @myTiming_rank0
+    def log_likelihood_func(self, pvec):
+        if len(self.local_ms) is not 0:
+            Result = [self.make_function_m(pvec, mi) for mi in self.local_ms]
+            send_f = N.array([sum(Result)])
+        else:
+            send_f = N.array([0.])
+        mpiutil.barrier()
+        recv_f = N.array([0.])
+        mpiutil._comm.Allreduce(send_f, recv_f)
+        fun = recv_f[0] / self.mmode_count
+        return fun
+
+    @myTiming_rank0
+    def jacobian(self, pvec):
+        if len(self.local_ms) is not 0:
+            Result = [self.make_jacobian_m(pvec, mi) for mi in self.local_ms]
+            send_j = sum(Result)
+        else:
+            send_j = N.zeros((self.dim,))
+        mpiutil.barrier()
+        recv_j = N.zeros((self.dim,))
+        mpiutil._comm.Allreduce(send_j, recv_j)
+        jac = recv_j / self.mmode_count
+        return jac
 
 
 """ 
