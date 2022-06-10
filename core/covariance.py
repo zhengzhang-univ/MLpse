@@ -128,7 +128,7 @@ class Covariance_saveKL(Covariances):
     def load_Q_kl_mi_triu(self, m):
         mind = self.nontrivial_mmode_list.index(m)
         dim_kl = self.kl_len[mind]
-        shape = (dim_kl*(dim_kl+1)/2, self.nonzero_alpha_dim)
+        shape = (int(dim_kl*(dim_kl+1)/2), self.nonzero_alpha_dim)
         result = N.zeros(shape, dtype=N.csingle)
         for p in range(shape[1]):
             result[:, p] = self.load_Q_kl_mi_param_triu(m, str(self.para_ind_list[p]))
