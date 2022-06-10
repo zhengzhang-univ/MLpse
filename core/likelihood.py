@@ -17,8 +17,8 @@ class Likelihood:
         self.partition_modes_m()
         self.mmode_count = len(self.nontrivial_mmode_list)
         parameters = self.CV.make_binning_power()
-        global memorysize
-        memorysize = 2 * len(self.local_ms)
+        #global memorysize
+        self.memorysize = 2 * len(self.local_ms)
         self.parameter_model_values = N.array([parameters[i] for i in self.CV.para_ind_list])
         self.pvec = N.zeros_like(self.parameter_model_values)
         self.local_cv_noise_kl = []
@@ -114,7 +114,7 @@ class Likelihood:
         mind=self.local_ms.index(mi)
         cv_mat = self.local_cv_noise_kl[mind] + \
                  self.CV.build_Hermitian_from_triu(N.dot(self.local_Q_triu_kl_m[mind], pvec))
-        print("**make_covariance_kl_m: mi = {}, KL length = {}".format(mi, self.CV.kl_len[self.nontrivial_mmode_list.index(mi)]))
+        print("**make_covariance_kl_m_in_memory: mi = {}, KL length = {}".format(mi, self.CV.kl_len[self.nontrivial_mmode_list.index(mi)]))
         return cv_mat.astype(N.csingle)
 
     @myTiming_rank0

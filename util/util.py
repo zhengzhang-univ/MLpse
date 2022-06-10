@@ -130,7 +130,7 @@ def cache_last_n_classfunc(func):
 
     @functools.wraps(func)
     def wrapper(self, x, *args, **kwargs):
-        n = self.__class__.memorysize
+        n = self.memorysize
         if arg_cache == [None]:
             arg_cache.extend([None]*(n-1))
             kw_cache.extend([None]*(n-1))
