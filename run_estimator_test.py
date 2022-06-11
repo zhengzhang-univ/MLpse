@@ -50,5 +50,4 @@ def Jacobian(pvec):
 if Scaling:
     p0 = N.log(2 * p0)
 
-log_likelihood(p0)
 Jacobian(p0)

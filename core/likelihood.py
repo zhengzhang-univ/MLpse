@@ -130,16 +130,20 @@ class Likelihood:
         C_inv = scipy.linalg.inv(C).astype(N.csingle)
         aux = C_inv @ self.local_data_kl_m[local_mindex]
         # aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
+        aux2 =C_inv - (aux @ (aux.conj().T))
         aux = C_inv - aux @ aux.conj().T
+        assert aux2 == aux
         aux = self.CV.fetch_triu(aux.conj().T) * 2
         size = C.shape[0]
-        assert len(aux) == len(self.local_Q_triu_kl_m[local_mindex] == size*(size+1)/2)
+        assert aux.shape[0] == self.local_Q_triu_kl_m[local_mindex].shape[0]
+        assert aux.shape[0] == size*(size+1)/2
         count = 0
         for i in range(size):
             aux[count] *= 0.5
             count += size - i
-        result = N.sum(self.local_Q_triu_kl_m[local_mindex] * aux[:, N.newaxis], axis=0).real
-        return result.reshape((self.dim,))
+        #result = N.sum(self.local_Q_triu_kl_m[local_mindex] * aux[:, N.newaxis], axis=0)
+        result = N.einsum("ij, i -> j", self.local_Q_triu_kl_m[local_mindex], aux)
+        return result.real.reshape((self.dim,))
         #def trace_product(x):
         #    return N.sum(self.CV.build_Hermitian_from_triu(x) * aux.conj().T)
         #result = N.apply_along_axis(trace_product, axis=0, arr=self.local_Q_triu_kl_m[local_mindex])
