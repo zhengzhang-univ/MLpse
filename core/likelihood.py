@@ -129,10 +129,12 @@ class Likelihood:
         local_mindex = self.local_ms.index(mi)
         C = self.make_covariance_kl_m_in_memory(pvec, mi)
         C_inv = scipy.linalg.inv(C).astype(N.csingle)
+        assert C_inv.shape == C.shape
         aux = C_inv @ self.local_data_kl_m[local_mindex]
         # aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
         aux = C_inv - aux @ aux.conj().T
-        aux = fetch_triu(aux.conj().T) * 2
+        assert aux.shape == C.shape
+        aux = fetch_triu(aux.T) * 2
         size = C.shape[0]
         assert aux.shape[0] == size*(size+1)/2
         print("{} and {}".format(size*(size+1)/2, self.local_Q_triu_kl_m[local_mindex].shape[0]))
