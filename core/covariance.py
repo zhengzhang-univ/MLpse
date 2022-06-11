@@ -124,7 +124,7 @@ class Covariance_saveKL(Covariances):
 
     def load_Q_kl_mi_param_triu(self,mi,param_ind):
         data = h5py.File(self.filesavepath + str(param_ind) + ".hdf5",'r')[str(mi)][...]
-        return self.fetch_triu(data)
+        return fetch_triu(data)
 
     def load_Q_kl_mi_triu(self, m):
         mind = self.nontrivial_mmode_list.index(m)
@@ -134,16 +134,6 @@ class Covariance_saveKL(Covariances):
         for p in range(shape[1]):
             result[:, p] = self.load_Q_kl_mi_param_triu(m, str(self.para_ind_list[p]))
         return result
-
-    def fetch_triu(self, data):
-        return data[N.triu_indices(data.shape[0],k=0)]
-
-    def build_Hermitian_from_triu(self, vec):
-        size = int(N.floor(N.sqrt(2*len(vec))))
-        X = N.zeros((size, size)).astype(vec.dtype)
-        X[N.triu_indices(size, k=0)] = vec
-        X = X + X.conj().T - N.diag(N.diag(X))
-        return X
 
     def filter_m_modes(self):
         self.nontrivial_mmode_list = []
@@ -165,6 +155,15 @@ class Covariance_saveKL(Covariances):
         result = self.kltrans.project_matrix_svd_to_kl(mi, mproj)
         return ((result + result.conj().T)/2).astype(N.csingle) # numpy csingle itemsize = 8 bytes
 
+def fetch_triu(data):
+    return data[N.triu_indices(data.shape[0],k=0)]
+
+def build_Hermitian_from_triu(vec):
+    size = int(N.floor(N.sqrt(2*len(vec))))
+    X = N.zeros((size, size)).astype(vec.dtype)
+    X[N.triu_indices(size, k=0)] = vec
+    X = X + X.conj().T - N.diag(N.diag(X))
+    return X
 
 """
     def save_Q_kl_m(self,mi):

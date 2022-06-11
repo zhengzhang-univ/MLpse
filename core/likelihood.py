@@ -4,6 +4,7 @@ import scipy.linalg
 import h5py
 from util import mpiutil
 from util.util import myTiming_rank0, cache_last_n_classfunc
+from core.covariance import fetch_triu, build_Hermitian_from_triu
 
 
 class Likelihood:
@@ -111,7 +112,7 @@ class Likelihood:
     def make_covariance_kl_m_in_memory(self, pvec, mi):
         m=self.local_ms.index(mi)
         cv_mat = self.local_cv_noise_kl[m] + \
-                 self.CV.build_Hermitian_from_triu(N.einsum("ij,j->i", self.local_Q_triu_kl_m[m], pvec))
+                 build_Hermitian_from_triu(N.einsum("ij,j->i", self.local_Q_triu_kl_m[m], pvec))
         return cv_mat.astype(N.csingle)
 
     @myTiming_rank0
@@ -130,13 +131,12 @@ class Likelihood:
         C_inv = scipy.linalg.inv(C).astype(N.csingle)
         aux = C_inv @ self.local_data_kl_m[local_mindex]
         # aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
-        aux2 =C_inv - (aux @ (aux.conj().T))
         aux = C_inv - aux @ aux.conj().T
-        assert N.all(aux2 == aux)
-        aux = self.CV.fetch_triu(aux.conj().T) * 2
+        aux = fetch_triu(aux.conj().T) * 2
         size = C.shape[0]
-        assert aux.shape[0] == self.local_Q_triu_kl_m[local_mindex].shape[0]
         assert aux.shape[0] == size*(size+1)/2
+        print("{} and {}".format(size*(size+1)/2, self.local_Q_triu_kl_m[local_mindex].shape[0]))
+        #assert aux.shape[0] == self.local_Q_triu_kl_m[local_mindex].shape[0]
         count = 0
         for i in range(size):
             aux[count] *= 0.5
@@ -145,7 +145,7 @@ class Likelihood:
         result = N.einsum("ij, i -> j", self.local_Q_triu_kl_m[local_mindex], aux)
         return result.real.reshape((self.dim,))
         #def trace_product(x):
-        #    return N.sum(self.CV.build_Hermitian_from_triu(x) * aux.conj().T)
+        #    return N.sum(build_Hermitian_from_triu(x) * aux.conj().T)
         #result = N.apply_along_axis(trace_product, axis=0, arr=self.local_Q_triu_kl_m[local_mindex])
         # result = N.array([N.trace(self.CV.load_Q_kl_mi_param(mi, self.CV.para_ind_list[i]) @ aux)
         #                   for i in range(self.dim)]).reshape((self.dim,))
