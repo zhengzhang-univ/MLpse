@@ -135,8 +135,10 @@ class Likelihood:
         aux = C_inv - aux @ aux.conj().T
         assert aux.shape == C.shape
         aux = fetch_triu(aux.T) * 2
+        print("aux shape: {}".format(aux.shape))
         size = C.shape[0]
-        assert aux.shape[0] == size*(size+1)/2
+        print('size: {}'.format(size))
+        assert aux.shape[0] == int(size*(size+1)/2)
         print("{} and {}".format(size*(size+1)/2, self.local_Q_triu_kl_m[local_mindex].shape[0]))
         #assert aux.shape[0] == self.local_Q_triu_kl_m[local_mindex].shape[0]
         count = 0
