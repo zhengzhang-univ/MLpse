@@ -131,16 +131,15 @@ class Likelihood:
         aux = C_inv @ self.local_data_kl_m[local_mindex]
         # aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
         aux = C_inv - aux @ aux.conj().T
-        aux = self.CV.fetch_triu(aux.conj().T)
-        length = self.local_Q_triu_kl_m[local_mindex].shape[0]
-        size = int(N.floor(N.sqrt(2 * length)))
-        aux2 = N.ones(length) * 2
+        aux = self.CV.fetch_triu(aux.conj().T) * 2
+        size = C.shape[0]
+        assert len(aux) == len(self.local_Q_triu_kl_m[local_mindex] == size*(size+1)/2)
         count = 0
         for i in range(size):
-            aux2[count] = 1
+            aux[count] *= 0.5
             count += size - i
-        result = N.sum(self.local_Q_triu_kl_m[local_mindex] * aux[:, N.newaxis] * aux2[:, N.newaxis], axis=0)
-        return result.reshape((self.dim,)).real
+        result = N.sum(self.local_Q_triu_kl_m[local_mindex] * aux[:, N.newaxis], axis=0).real
+        return result.reshape((self.dim,))
         #def trace_product(x):
         #    return N.sum(self.CV.build_Hermitian_from_triu(x) * aux.conj().T)
         #result = N.apply_along_axis(trace_product, axis=0, arr=self.local_Q_triu_kl_m[local_mindex])
