@@ -132,7 +132,7 @@ class Likelihood:
         # aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
         aux2 =C_inv - (aux @ (aux.conj().T))
         aux = C_inv - aux @ aux.conj().T
-        assert aux2 == aux
+        assert N.all(aux2 == aux)
         aux = self.CV.fetch_triu(aux.conj().T) * 2
         size = C.shape[0]
         assert aux.shape[0] == self.local_Q_triu_kl_m[local_mindex].shape[0]
