@@ -1,5 +1,6 @@
 import copy
 import numpy as N
+import numpy as np
 import scipy.linalg
 import h5py
 from util import mpiutil
@@ -108,37 +109,35 @@ class Likelihood:
             cv_mat += pvec[i]*self.CV.load_Q_kl_mi_param(mi, self.CV.para_ind_list[i])
         return cv_mat
 
-    @myTiming_rank0
     def make_covariance_kl_m_in_memory(self, pvec, mi):
         m=self.local_ms.index(mi)
         cv_mat = self.local_cv_noise_kl[m] + \
                  build_Hermitian_from_triu(N.einsum("ij,j->i", self.local_Q_triu_kl_m[m], pvec))
         return cv_mat.astype(N.csingle)
 
-    @myTiming_rank0
     def make_function_m(self, pvec, mi):
         local_mindex = self.local_ms.index(mi)
         C = self.make_covariance_kl_m_in_memory(pvec, mi)
         C_inv = scipy.linalg.inv(C).astype(N.csingle)
-        C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].conj().T
-        result = N.linalg.slogdet(C)[1] + N.trace(C_inv_D)
+        Tr_C_inv_D = N.einsum("ij,j,i", C_inv, self.local_data_kl_m[local_mindex],
+                              self.local_data_kl_m[local_mindex].conj())
+        # C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].conj().T
+        result = N.linalg.slogdet(C)[1] + Tr_C_inv_D
         return result.real
 
-    @myTiming_rank0
     def make_jacobian_m(self, pvec, mi):
         local_mindex = self.local_ms.index(mi)
         C = self.make_covariance_kl_m_in_memory(pvec, mi)
         C_inv = scipy.linalg.inv(C)
-        aux = C_inv @ self.local_data_kl_m[local_mindex]
-        # aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
-        aux = C_inv - aux @ aux.conj().T
-        aux = fetch_triu(aux.T) * 2
+        aux = C_inv - np.einsum("ij,j,k,kl->il",
+                                C_inv, self.local_data_kl_m[local_mindex],
+                                self.local_data_kl_m[local_mindex].conj(), C_inv)
+        aux = fetch_triu(aux.conj()) * 2
         size = C.shape[0]
         count = 0
         for i in range(size):
             aux[count] *= 0.5
             count += size - i
-        #result = N.sum(self.local_Q_triu_kl_m[local_mindex] * aux[:, N.newaxis], axis=0)
         result = N.einsum("ij, i -> j", self.local_Q_triu_kl_m[local_mindex], aux)
         return result.real.reshape((self.dim,)).astype(float)
         #def trace_product(x):
