@@ -128,7 +128,7 @@ class Likelihood:
     def make_jacobian_m(self, pvec, mi):
         local_mindex = self.local_ms.index(mi)
         C = self.make_covariance_kl_m_in_memory(pvec, mi)
-        C_inv = scipy.linalg.inv(C).astype(N.csingle)
+        C_inv = scipy.linalg.inv(C)
         aux = C_inv @ self.local_data_kl_m[local_mindex]
         # aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
         aux = C_inv - aux @ aux.conj().T
@@ -143,7 +143,7 @@ class Likelihood:
             count += size - i
         #result = N.sum(self.local_Q_triu_kl_m[local_mindex] * aux[:, N.newaxis], axis=0)
         result = N.einsum("ij, i -> j", self.local_Q_triu_kl_m[local_mindex], aux)
-        return result.real.reshape((self.dim,))
+        return result.real.reshape((self.dim,)).astype(float)
         #def trace_product(x):
         #    return N.sum(build_Hermitian_from_triu(x) * aux.conj().T)
         #result = N.apply_along_axis(trace_product, axis=0, arr=self.local_Q_triu_kl_m[local_mindex])
@@ -168,11 +168,11 @@ class Likelihood:
     def jacobian(self, pvec):
         if len(self.local_ms) is not 0:
             Result = [self.make_jacobian_m(pvec, mi) for mi in self.local_ms]
-            send_j = sum(Result)
+            send_j = sum(Result).astype(float)
         else:
-            send_j = N.zeros((self.dim,))
+            send_j = N.zeros((self.dim,)).astype(float)
         mpiutil.barrier()
-        recv_j = N.zeros((self.dim,))
+        recv_j = N.zeros((self.dim,)).astype(float)
         mpiutil._comm.Allreduce(send_j, recv_j)
         jac = recv_j / self.mmode_count
         return jac
