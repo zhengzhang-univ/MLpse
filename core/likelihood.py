@@ -129,9 +129,8 @@ class Likelihood:
         local_mindex = self.local_ms.index(mi)
         C = self.make_covariance_kl_m_in_memory(pvec, mi)
         C_inv = scipy.linalg.inv(C)
-        aux = C_inv - np.einsum("ij,j,k,kl->il",
-                                C_inv, self.local_data_kl_m[local_mindex],
-                                self.local_data_kl_m[local_mindex].conj(), C_inv)
+        aux = np.einsum("ij,j->i", C_inv, self.local_data_kl_m[local_mindex])
+        aux = C_inv - np.einsum("i,j->ij", aux, aux.conj())
         aux = fetch_triu(aux.conj()) * 2
         size = C.shape[0]
         count = 0
@@ -151,11 +150,11 @@ class Likelihood:
     def log_likelihood_func(self, pvec):
         if len(self.local_ms) is not 0:
             Result = [self.make_function_m(pvec, mi) for mi in self.local_ms]
-            send_f = N.array([sum(Result)])
+            send_f = N.array([sum(Result)]).astype(float)
         else:
-            send_f = N.array([0.])
+            send_f = N.array([0.]).astype(float)
         mpiutil.barrier()
-        recv_f = N.array([0.])
+        recv_f = N.array([0.]).astype(float)
         mpiutil._comm.Allreduce(send_f, recv_f)
         fun = recv_f[0] / self.mmode_count
         return fun
