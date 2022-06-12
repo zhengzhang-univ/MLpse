@@ -50,4 +50,10 @@ def Jacobian(pvec):
 if Scaling:
     p0 = N.log(2 * p0)
 
-Jacobian(p0)
+jac_zz = Jacobian(p0)
+if mpiutil.rank0:
+    print("ZZ Jac: {}".format(jac_zz))
+import numdifftools as nd
+jac_nd = nd.Gradient(log_likelihood)(p0)
+if mpiutil.rank0:
+    print("Nd Jac: {}".format(jac_nd))

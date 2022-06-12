@@ -118,7 +118,7 @@ class Likelihood:
     def make_function_m(self, pvec, mi):
         local_mindex = self.local_ms.index(mi)
         C = self.make_covariance_kl_m_in_memory(pvec, mi)
-        C_inv = scipy.linalg.inv(C).astype(N.csingle)
+        C_inv = scipy.linalg.inv(C)
         Tr_C_inv_D = N.einsum("ij,j,i", C_inv, self.local_data_kl_m[local_mindex],
                               self.local_data_kl_m[local_mindex].conj())
         # C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].conj().T
@@ -145,6 +145,14 @@ class Likelihood:
         # result = N.array([N.trace(self.CV.load_Q_kl_mi_param(mi, self.CV.para_ind_list[i]) @ aux)
         #                   for i in range(self.dim)]).reshape((self.dim,))
         #return result.reshape((self.dim,)).real
+    """
+    def make_func_and_jac_m(self, pvec, mi):
+        local_mindex = self.local_ms.index(mi)
+        C = self.make_covariance_kl_m_in_memory(pvec, mi)
+        C_inv = scipy.linalg.inv(C)
+        fun = N.linalg.slogdet(C)[1] + N.einsum("ij,j,i", C_inv, self.local_data_kl_m[local_mindex],
+                                                self.local_data_kl_m[local_mindex].conj())
+    """
 
     @myTiming_rank0
     def log_likelihood_func(self, pvec):

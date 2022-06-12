@@ -15,7 +15,7 @@ data_path ='/data/zzhang/Viraj/draco_out/klmode_group_0.h5'
 kpar_start, kpar_end, kpar_dim, kperp_start, kperp_end, kperp_dim = 0, 0.30, 31, 0, 0.10, 10
 kltrans_name = 'dk_5thresh_fg_1000thresh'
 Scaling = True
-Regularized = False
+Regularized = True
 outputname = "MLPSE_Viraj_test"
 Response_matrices_filename = "/data/zzhang/Viraj/tmp/"
 
