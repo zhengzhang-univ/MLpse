@@ -133,10 +133,7 @@ class Likelihood:
         # aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
         aux = C_inv - aux @ aux.conj().T
         aux = fetch_triu(aux.T) * 2
-        print("aux shape: {}".format(aux.shape))
         size = C.shape[0]
-        assert aux.shape[0] == int(size*(size+1)/2)
-        #assert aux.shape[0] == self.local_Q_triu_kl_m[local_mindex].shape[0]
         count = 0
         for i in range(size):
             aux[count] *= 0.5
