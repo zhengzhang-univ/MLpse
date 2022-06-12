@@ -91,7 +91,7 @@ class Likelihood:
         C = self.make_covariance_kl_m(self.pvec, mi)
         local_mindex = self.local_ms.index(mi)
         C_inv = scipy.linalg.inv(C)
-        C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].H
+        C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].conj().T
         # compute m-mode log-likelihood
         fun_mi = N.linalg.slogdet(C)[1] + N.trace(C_inv_D)
         # compute m-mode Jacobian
@@ -120,7 +120,7 @@ class Likelihood:
         local_mindex = self.local_ms.index(mi)
         C = self.make_covariance_kl_m_in_memory(pvec, mi)
         C_inv = scipy.linalg.inv(C).astype(N.csingle)
-        C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].H
+        C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].conj().T
         result = N.linalg.slogdet(C)[1] + N.trace(C_inv_D)
         return result.real
 
