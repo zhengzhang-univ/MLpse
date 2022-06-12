@@ -54,6 +54,9 @@ jac_zz = Jacobian(p0)
 if mpiutil.rank0:
     print("ZZ Jac: {}".format(jac_zz))
 import numdifftools as nd
+t1=time.time()
 jac_nd = nd.Gradient(log_likelihood)(p0)
+t2=time.time()
 if mpiutil.rank0:
     print("Nd Jac: {}".format(jac_nd))
+    print("Nd Jac time: {}".format(t2-t1))
