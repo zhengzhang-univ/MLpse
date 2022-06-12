@@ -30,7 +30,7 @@ class Likelihood:
             cvnoise = self.CV.make_noise_covariance_kl_m(mi, threshold)
             length = cvnoise.shape[0]
             self.local_cv_noise_kl.append(cvnoise)
-            self.local_data_kl_m.append(N.matrix(fdata['vis'][mi][:length].reshape((-1, 1))))
+            self.local_data_kl_m.append(fdata['vis'][mi][:length])
             self.local_Q_triu_kl_m.append(self.CV.load_Q_kl_mi_triu(mi))
         fdata.close()
         if mpiutil.rank0:
@@ -129,17 +129,13 @@ class Likelihood:
         local_mindex = self.local_ms.index(mi)
         C = self.make_covariance_kl_m_in_memory(pvec, mi)
         C_inv = scipy.linalg.inv(C).astype(N.csingle)
-        assert C_inv.shape == C.shape
         aux = C_inv @ self.local_data_kl_m[local_mindex]
         # aux = (N.identity(C.shape[0]) - C_inv_D) @ C_inv
         aux = C_inv - aux @ aux.conj().T
-        assert aux.shape == C.shape
         aux = fetch_triu(aux.T) * 2
         print("aux shape: {}".format(aux.shape))
         size = C.shape[0]
-        print('size: {}'.format(size))
         assert aux.shape[0] == int(size*(size+1)/2)
-        print("{} and {}".format(size*(size+1)/2, self.local_Q_triu_kl_m[local_mindex].shape[0]))
         #assert aux.shape[0] == self.local_Q_triu_kl_m[local_mindex].shape[0]
         count = 0
         for i in range(size):
