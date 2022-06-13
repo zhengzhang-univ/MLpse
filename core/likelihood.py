@@ -119,6 +119,7 @@ class Likelihood:
         local_mindex = self.local_ms.index(mi)
         C = self.make_covariance_kl_m_in_memory(pvec, mi)
         C_inv = scipy.linalg.inv(C)
+        C_inv = (C_inv + C_inv.conj().T) / 2
         Tr_C_inv_D = N.einsum("ij,j,i", C_inv, self.local_data_kl_m[local_mindex],
                               self.local_data_kl_m[local_mindex].conj())
         # C_inv_D = C_inv @ self.local_data_kl_m[local_mindex] @ self.local_data_kl_m[local_mindex].conj().T
@@ -129,6 +130,7 @@ class Likelihood:
         local_mindex = self.local_ms.index(mi)
         C = self.make_covariance_kl_m_in_memory(pvec, mi)
         C_inv = scipy.linalg.inv(C)
+        C_inv = (C_inv + C_inv.conj().T) / 2
         aux = np.einsum("ij,j->i", C_inv, self.local_data_kl_m[local_mindex])
         aux = C_inv - np.einsum("i,j->ij", aux, aux.conj())
         aux = fetch_triu(aux.conj()) * 2
@@ -138,7 +140,7 @@ class Likelihood:
             aux[count] *= 0.5
             count += size - i
         result = N.einsum("ij, i -> j", self.local_Q_triu_kl_m[local_mindex], aux)
-        return result.real.reshape((self.dim,)).astype(float)
+        return result.real.reshape((self.dim,))
         #def trace_product(x):
         #    return N.sum(build_Hermitian_from_triu(x) * aux.conj().T)
         #result = N.apply_along_axis(trace_product, axis=0, arr=self.local_Q_triu_kl_m[local_mindex])
