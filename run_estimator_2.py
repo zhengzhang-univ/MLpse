@@ -48,8 +48,9 @@ if Scaling:
 
 
 st = time.time()
-res = minimize(log_likelihood, p0, method='BFGS', jac= Jacobian, tol=1e-3,
-               options={'gtol': 1e-4, 'disp': True, 'maxiter':200, 'return_all':True}) # rex.x is the result.
+# res = minimize(log_likelihood, p0, method='BFGS', jac= Jacobian, tol=1e-3,
+#                options={'gtol': 1e-4, 'disp': True, 'maxiter':200, 'return_all':True}) # rex.x is the result.
+res = minimize(log_likelihood, p0, method='Nelder-Mead')
 et = time.time()
 
 
