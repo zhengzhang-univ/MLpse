@@ -66,11 +66,11 @@ class kspace_cartesian:
         crt = corr21cm.Corr21cm(ps=pk, redshift=1.5)
         crt.ps_2d = True
         clzz = skymodel.im21cm_model(
-            self.telescope.lmax,
-            self.telescope.frequencies,
-            self.telescope.num_pol_sky,
-            cr=crt,
-            temponly=True,
-        )
+               self.telescope.lmax,
+               self.telescope.frequencies,
+               self.telescope.num_pol_sky,
+               cr=crt,
+               temponly=True,
+               )
         return clzz
 
